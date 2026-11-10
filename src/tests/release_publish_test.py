@@ -14,10 +14,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import publish_gateway as release
 from build_version import release_filename
 
-assert release_filename('v0.1') == 'dub-box-v0.1.0.fwsc'
-assert release_filename('v0.1.1') == 'dub-box-v0.1.1.fwsc'
-assert release_filename('v0.2.0') == 'dub-box-v0.2.0.fwsc'
-assert release_filename('1.2-rc.1') == 'dub-box-v1.2.0-rc.1.fwsc'
+assert release_filename('v0.1') == 'dub-box-0.1.0.fwsc'
+assert release_filename('v0.1.1') == 'dub-box-0.1.1.fwsc'
+assert release_filename('v0.2.0') == 'dub-box-0.2.0.fwsc'
+assert release_filename('1.2-rc.1') == 'dub-box-1.2.0-rc.1.fwsc'
 for tag in ('v1', 'v1.2.100', 'v1.2/evil', 'v01.2'):
     try:
         release_filename(tag)
@@ -36,7 +36,7 @@ with tempfile.TemporaryDirectory() as temp:
     for name in release.NOTICES:
         (bundle / name).write_text(f'{name}: copyright <author> & contributors')
     asset, notes = release.prepare(bundle, 'v0.1.1', 'owner/repo', 'Changes', output)
-    assert asset.name == 'dub-box-v0.1.1.fwsc' and asset.read_bytes() == firmware
+    assert asset.name == 'dub-box-0.1.1.fwsc' and asset.read_bytes() == firmware
     text = notes.read_text()
     assert text.startswith('Changes\n') and info['firmware_sha256'] in text
     assert '[Matching source]' not in text and 'Install with M-Flasher.' not in text
@@ -140,7 +140,7 @@ with tempfile.TemporaryDirectory() as temp:
         state['tagName'] = 'v0.1'
         state['assets'] = [dict(name=p.name) for p in bundle.iterdir()]
         release.tidy_legacy('v0.1', 'owner/repo')
-        assert state['assets'] == [dict(name='dub-box-v0.1.0.fwsc')]
+        assert state['assets'] == [dict(name='dub-box-0.1.0.fwsc')]
         assert '/archive/refs/tags/' not in state['body']
 
 print('PASS: normalized versioned firmware, concise notes with notices, validated release recreation, idempotent notes, one-asset publication, upload-before-delete, failed-upload preservation and bounded legacy migration')

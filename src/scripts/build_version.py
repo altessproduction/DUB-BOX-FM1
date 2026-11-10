@@ -14,7 +14,7 @@ def release_filename(tag):
     if not m or len(tag) > 40:
         raise ValueError('Invalid release tag: ' + tag)
     version = '.'.join(str(int(n or 0)) for n in m.group(1, 2, 3)) + (m.group(4) or '')
-    return f'dub-box-v{version}.fwsc'
+    return f'dub-box-{version}.fwsc'
 
 
 def git(root, *args):

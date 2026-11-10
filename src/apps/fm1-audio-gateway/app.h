@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "plat.h"
 
-#define APP_NAME "DUBBOX"
+#define APP_NAME "DUB-BOX"
 #ifndef APP_VERSION
 #define APP_VERSION "DEV"
 #endif
