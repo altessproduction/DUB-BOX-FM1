@@ -21,16 +21,13 @@ enum { DUB_SUB = 0, DUB_BASS = 1, DUB_MIDS = 2, DUB_TOPS = 3, DUB_BANDS = 4 };
 typedef struct {
     int16_t cutoff_hz;
     int8_t gain_db;
-    int8_t eq_freq;
-    uint8_t eq_q;
-    int8_t eq_db;
     uint8_t mute;
-} dub_band_param_t;
+} dub_band_param_t;   /* sloop's per-band EQ is not on DUB-BOX's ISO page: gone,
+                       * with its per-sample smoothers (code and CPU back) */
 typedef struct {
     dub_band_param_t p[DUB_BANDS];
+    int32_t gain_q15[DUB_BANDS];              /* the band's gain, Q15, set with the knob */
     int32_t xover[3];
-    int32_t eq_fast[DUB_BANDS];
-    int32_t eq_slow[DUB_BANDS];
     int32_t lp[DUB_BANDS];
     uint8_t enabled;
     uint8_t mix;
@@ -104,24 +101,20 @@ static void dub_isolator_init(dub_isolator_t *d)
     for (i = 0; i < DUB_BANDS; i++) {
         d->p[i].cutoff_hz = cuts[i];
         d->p[i].gain_db = 0;
-        d->p[i].eq_freq = 64;
-        d->p[i].eq_q = 64;
-        d->p[i].eq_db = 0;
         d->p[i].mute = 0;
-        d->eq_fast[i] = d->eq_slow[i] = 0;
         d->lp[i] = 0;
     }
 }
+static int32_t dub_gain(int8_t db);
 static void dub_isolator_set_band(dub_isolator_t *d, uint32_t band, dub_band_param_t p)
 {
     if (band >= DUB_BANDS)
         return;
     d->p[band] = p;
     d->p[band].gain_db = (int8_t)dub_clamp(d->p[band].gain_db, -24, 12);
-    d->p[band].eq_db = (int8_t)dub_clamp(d->p[band].eq_db, -12, 12);
-    d->p[band].eq_q = (uint8_t)dub_clamp(d->p[band].eq_q, 1, 127);
+    d->gain_q15[band] = dub_gain(d->p[band].gain_db);
 }
-static int32_t dub_gain(int8_t db)
+static int32_t dub_gain(int8_t db)             /* once a knob turn, not a sample */
 {
     int32_t g = 32767, i;
     if (db > 0)
@@ -148,7 +141,7 @@ static void dub_isolator_process(dub_isolator_t *d, int32_t *lr, uint32_t n)
         return;
     for (b = 0; b < DUB_BANDS; b++)            /* every knob at rest: the module stands
                                                 * aside and the original passes untouched */
-        if (d->p[b].gain_db || d->p[b].eq_db || d->p[b].mute) {
+        if (d->p[b].gain_db || d->p[b].mute) {
             live = 1;
             break;
         }
@@ -177,16 +170,9 @@ static void dub_isolator_process(dub_isolator_t *d, int32_t *lr, uint32_t n)
         bands[DUB_BASS] = low_mid;
         bands[DUB_MIDS] = mid;
         bands[DUB_TOPS] = mono - low - low_mid - mid;
-        for (b = 0; b < DUB_BANDS; b++) {
-            int32_t out = bands[b];
-            int32_t q = d->p[b].eq_q + 1;
-            d->eq_fast[b] += (bands[b] - d->eq_fast[b]) / q;
-            d->eq_slow[b] += (d->eq_fast[b] - d->eq_slow[b]) >> 4;
-            if (d->p[b].eq_db)
-                out += (bands[b] - d->eq_slow[b]) * d->p[b].eq_db / 24;
+        for (b = 0; b < DUB_BANDS; b++)
             if (!d->p[b].mute)
-                wet += dub_mul15(out, dub_gain(d->p[b].gain_db));
-        }
+                wet += dub_mul15(bands[b], d->gain_q15[b]);
         lr[2 * i] = in_l + (((wet - in_l) * d->mix) >> 7);
         lr[2 * i + 1] = in_r + (((wet - in_r) * d->mix) >> 7);
     }
@@ -309,7 +295,12 @@ static void dub_filter_process(int32_t *lr, uint32_t n)
 #define DUB_FLT_INC 19617261u   /* 6.3 Hz */
 #define DUB_WOW_DEP (20 << 8)   /* +- 0.45 ms, Q8 samples */
 #define DUB_FLT_DEP (4 << 8)    /* +- 0.09 ms */
-static int16_t dub_tape_buf[DUB_TAPE_LEN];
+/* The tape's buffer is NOT static: 64 KiB of .bss would eat the work area the
+ * waveform/spectrum captures need (98,304 B). Foreground code holds it in the
+ * work area while the echo is in use and lets the displays take it back
+ * (dub_tape_hold / dub_tape_wanted); without a buffer the echo passes silence
+ * and the dry path is bit-transparent. Tests attach their own storage. */
+static int16_t *volatile dub_tape_buf;
 static uint32_t dub_tape_w;
 static uint16_t dub_tape_ms = 400, dub_tape_fb = 70, dub_tape_tone = 50, dub_tape_lvl = 80;
 static uint8_t dub_tape_send = 0;                   /* the DUB page's throw, 0 DRY */
@@ -323,13 +314,26 @@ static uint8_t dub_siren_send = 0;                  /* the siren's own throw, 0 
 
 static void dub_tape_init(void)
 {
-    memset(dub_tape_buf, 0, sizeof dub_tape_buf);
+    dub_tape_buf = 0;
     dub_tape_w = 0;
     dub_tape_cur = 0;
     dub_tape_wow = dub_tape_fl = 0;
     dub_tape_w0 = dub_tape_dw = 0;
     dub_tape_send_g = dub_tape_sir_g = 0;
     dub_tape_lp = 0;
+}
+static uint32_t dub_tape_bytes(void) { return DUB_TAPE_LEN * 2u; }
+/* foreground only: attach/detach the tape's storage; the audio side picks the
+ * pointer up whole (one aligned word), a stale buffer is a valid buffer */
+static void dub_tape_attach(int16_t *buf)
+{
+    dub_tape_buf = buf;
+    if (buf) {
+        memset(buf, 0, DUB_TAPE_LEN * 2u);
+        dub_tape_w = 0;
+        dub_tape_cur = 0;
+        dub_tape_lp = 0;
+    }
 }
 static void dub_tape_set_ms(uint16_t ms)
 {
@@ -385,6 +389,8 @@ static int32_t dub_tape_step(int32_t in)
 {
     int32_t ro, x, fbp, wet, wr;
     uint32_t i0;
+    if (!dub_tape_buf)
+        return 0;                                    /* no storage: the echo rests */
     ro = (dub_tape_cur << 8) + dub_tape_w0;
     dub_tape_w0 += dub_tape_dw;
     i0 = (uint32_t)ro >> 8;

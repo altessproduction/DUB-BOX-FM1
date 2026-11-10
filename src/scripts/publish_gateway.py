@@ -15,7 +15,7 @@ from build_version import release_filename
 NOTICES = ('LICENSE', 'LICENSING.md', 'CREDITS.md', 'Apache-2.0.txt',
            'BSD-2-Clause-micro-ecc.txt', 'BSP-NOTICE.txt', 'BSP-LICENSING.md',
            'AAC-NOTICE.txt', 'LGPL-2.1.txt', 'APTX-NOTICE.md', 'MBOOT-LICENSE.txt', 'MBOOT-NOTICE.md')
-MARKER = '<!-- audio-router-distribution -->'
+MARKER = '<!-- dub-box-distribution -->'
 
 
 def gh(*args):
@@ -28,7 +28,7 @@ def view(tag):
 
 def prepare(directory, tag, repo, body, output):
     info = json.loads((directory / 'manifest.json').read_text())
-    firmware = directory / 'audio-router.fwsc'
+    firmware = directory / 'dub-box.fwsc'
     digest = hashlib.sha256(firmware.read_bytes()).hexdigest()
     if info['tag'] != tag or digest != info['firmware_sha256']:
         raise ValueError('Release firmware/manifest/tag mismatch')
@@ -84,8 +84,8 @@ def tidy_legacy(tag, repo):
     release = view(tag)
     names = {a['name'] for a in release['assets']}
     # Only migrate the old complete Audio Router bundle, never unrelated assets.
-    expected = {'audio-router.fwsc', 'manifest.json', 'SHA256SUMS',
-                'audio-router-source.tar.xz', 'audio-router-debug.tar.xz',
+    expected = {'dub-box.fwsc', 'manifest.json', 'SHA256SUMS',
+                'dub-box-source.tar.xz', 'dub-box-debug.tar.xz',
                 'fm1-uboot.boot', 'INSTALL.txt', *NOTICES}
     if release['isDraft'] or names != expected:
         return

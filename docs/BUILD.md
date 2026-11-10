@@ -50,7 +50,7 @@ firmware container embeds it, and Actions artifacts include the plain `.boot`
 file. Firmware-only installations preserve the device's existing bootloader.
 
 - `build/gateway/`: ELF, disassembly, generated headers, loader and memory reports.
-- `dist/audio-router.fwsc`: stable path for M-Flasher, refreshed atomically
+- `dist/dub-box.fwsc`: stable path for M-Flasher, refreshed atomically
   only after a successful target build; accompanied by `SHA256SUMS`.
 - `dist/release/`: verified firmware, matching source archive, debug symbols,
   plain FM-1 bootloader, manifest, licenses and checksums, created by `package_gateway.py`.
@@ -88,7 +88,7 @@ identity: `v0.1` displays `0.1` and has the same identity as `v0.1.0`.
 When you choose a version, tag the reviewed master commit and push that tag:
 
 Update the README's direct latest-firmware link to the chosen asset filename
-before tagging (for example, `fm1-audio-router-v0.1.1.fwsc`).
+before tagging (for example, `dub-box-0.1.1.fwsc`).
 Write the short release summary in `docs/RELEASE_NOTES.md`; the tag workflow
 uses it above the collapsed distribution notices.
 
@@ -104,9 +104,9 @@ that explicit label from a source archive without Git; it creates no tag.
 
 `.github/workflows/firmware.yml` runs three test suites for master pushes, pull
 requests and manual runs, then builds and verifies firmware. Download the
-`audio-router-<commit>` Actions artifact for the firmware and matching sources.
+`dub-box-<commit>` Actions artifact for the firmware and matching sources.
 A pushed tag publishes only the versioned firmware as a GitHub Release asset,
-named `fm1-audio-router-vMAJOR.MINOR.PATCH.fwsc` (a missing patch becomes zero).
+named `dub-box-vMAJOR.MINOR.PATCH.fwsc` (a missing patch becomes zero).
 Sources, debug symbols, bootloader and checksum files stay in the Actions artifact;
 release descriptions retain license notices and the firmware checksum.
 GitHub provides its automatic source archive links. Rerunning tag publication

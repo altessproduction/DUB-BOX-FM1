@@ -31,6 +31,7 @@ main_stack = 8192
 cpu2_timeout_us = 2000000
 # Keep audio/USB/LED interrupts running during settings erase/program.
 ram_runtime = true
+
 usb_host = false
 usb_console = false
 o2 = ["../../bt/br/aptx_dec/aptx_dec.c", "../../bt/br/aptx_dec/aptx_fir.c", "../../bt/br/sbc_dec/*.c", "../../bt/br/aac_dec/aac_dec.c",

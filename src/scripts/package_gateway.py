@@ -39,7 +39,7 @@ def main():
         raise SystemExit('Bundled bootloader changed since the target build; rebuild before packaging')
     logged('runtime.log', [sys.executable, SRC / 'tests/cpu2_runtime_test.py', BUILD])
     logged('rust-build.log', ['rustc', '--edition=2021', SRC / 'scripts/verify_fwsc.rs', '-o', BUILD / 'verify-fwsc'])
-    logged('package.log', [BUILD / 'verify-fwsc', firmware, BUILD / 'dubbox.bin', info['identity'], boot])
+    logged('package.log', [BUILD / 'verify-fwsc', firmware, BUILD / 'dub-box.bin', info['identity'], boot])
     logged('ota.log', [sys.executable, SRC / 'apps/fm1-audio-gateway/tests/run_package.py', firmware])
     # Use Git's publication boundary, never local backups, toolchains, flash dumps or generated files.
     names = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '-z', '--cached', '--others', '--exclude-standard']).split(b'\0')
@@ -99,7 +99,7 @@ def main():
             for p, digest in info['sources'].items():
                 assert hashlib.sha256(tar.extractfile('dub-box/' + p).read()).hexdigest() == digest, p
         with tarfile.open(out / 'dub-box-debug.tar.xz', 'w:xz') as tar:
-            for name in ('dubbox.elf', 'dubbox.dis', 'sizes.json', 'cpu2-budget.json', 'build-info.json'):
+            for name in ('dub-box.elf', 'dub-box.dis', 'sizes.json', 'cpu2-budget.json', 'build-info.json'):
                 tar.add(BUILD / name, arcname=name, filter=normalise)
         files = sorted(out.iterdir())
         (out / 'SHA256SUMS').write_text(''.join(f'{sha(p)}  {p.name}\n' for p in files))

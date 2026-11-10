@@ -262,6 +262,7 @@ static void gateway_release_display(void)
     gateway_twiddle_ready = 0;
     plat_work_free(gateway_display_block);
     gateway_display_block = 0;
+    dub_tape_hold_wanted();                     /* the tape's echo comes back */
 }
 static uint32_t gateway_display_retry_ms;
 static void gateway_acquire_display(void)
@@ -277,8 +278,9 @@ static void gateway_acquire_display(void)
         ui_bytes = sizeof(gateway_spectrum_buffers_t);
         capture_bytes = plat_usb_spectrum_mem_bytes();
     } else return;
+    dub_tape_hold(0);                           /* the displays take the tape's room back */
     gateway_display_block = plat_work_alloc(ui_bytes + capture_bytes);
-    if (!gateway_display_block) return;
+    if (!gateway_display_block) { dub_tape_hold_wanted(); return; }
     if (gateway_mode == GATEWAY_MODE_FULL) {
         gateway_wave_buffers = gateway_display_block;
         memset(gateway_wave_buffers, 0, sizeof *gateway_wave_buffers);
@@ -428,6 +430,7 @@ void app_init(void)
         }
     }
     gateway_fade_draft=gateway_fade_time;
+    dub_tape_hold_wanted();                     /* the restored dub state may want the tape's room */
     gateway_codec_draft = gateway_codec_preference;
     gateway_auto_scale_draft = gateway_master_wave_auto_scale;
     gateway_color_draft = gateway_wave_color;

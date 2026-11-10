@@ -13,11 +13,38 @@ static const char *const gateway_dub_page_names[DUB_PG_N] = {"DUB", "SIREN", "DE
 static uint8_t gateway_dub_sir_lvl = 88;           /* the SIREN page's LEVEL, what REC sounds at */
 static uint8_t gateway_dub_sir_held;               /* REC / held SEL: the siren sounds */
 
+static void dub_tape_hold_wanted(void);
 static void dub_changed(void)
 {
     gateway_settings_changed();
     gateway_page_redraw = 1;
+    dub_tape_hold_wanted();
 }
+
+/* the tape's storage lives in the work area, not .bss: 64 KiB there would eat
+ * the room the waveform/spectrum captures need. It is held while the echo is
+ * in use; the display capture forces it out (gateway_acquire_display) and it
+ * comes back when the view is gone. Foreground only, never in the callback. */
+static void *gateway_dub_tape_block;
+static uint8_t dub_tape_wanted(void)
+{
+    return dub_on && (dub_tape_lvl || dub_tape_fb || dub_tape_send || dub_siren_send);
+}
+static void dub_tape_hold(int want)
+{
+    if (want && !gateway_dub_tape_block) {
+        void *p = plat_work_alloc(dub_tape_bytes());
+        if (p) {
+            gateway_dub_tape_block = p;
+            dub_tape_attach((int16_t *)p);
+        }
+    } else if (!want && gateway_dub_tape_block) {
+        dub_tape_attach(0);
+        plat_work_free(gateway_dub_tape_block);
+        gateway_dub_tape_block = 0;
+    }
+}
+static void dub_tape_hold_wanted(void) { dub_tape_hold(dub_tape_wanted()); }
 
 /* the value rows: label left, value right, a bar under, one row a knob */
 static void dub_ui_row(unsigned row, const char *label, const char *value, uint16_t color,
@@ -34,19 +61,11 @@ static void dub_ui_row(unsigned row, const char *label, const char *value, uint1
 }
 static char *dub_ui_db(char text[12], int db)      /* "-12" .. "+12", 0 plain */
 {
-    unsigned n = 0;
-    if (db > 0)
-        text[n++] = '+';
-    if (db <= -10) {
-        text[n++] = '-';
-        text[n++] = (char)('0' + (-db) / 10);
-        text[n++] = (char)('0' + (-db) % 10);
-    } else if (db <= -1) {
-        text[n++] = '-';
-        text[n++] = (char)('0' + -db);
-    } else {
-        text[n++] = (char)('0' + db);
-    }
+    unsigned n = 0, v = (db < 0 ? -db : db);
+    if (db > 0) text[n++] = '+';
+    if (db < 0) text[n++] = '-';
+    if (v >= 10) { text[n++] = (char)('0' + v / 10); text[n++] = (char)('0' + v % 10); }
+    else text[n++] = (char)('0' + v);
     text[n] = 0;
     return text;
 }
@@ -108,7 +127,6 @@ static void gateway_dub_draw(void)
     if (page == DUB_PG_MAIN) {
         int32_t v = dub_filter_get();
         if (v == 64) {
-            cv_text(6, 40 + 2 * DUB_UI_ROW_DY + 22, &FONT_XS, "nothing filtered at FLAT", C_GRAY);
             dub_ui_put(text, "FLAT");
         } else {
             text[0] = v < 64 ? 'L' : 'H'; text[1] = 'P'; text[2] = ' ';
@@ -120,7 +138,7 @@ static void gateway_dub_draw(void)
         dub_ui_row(1, "K2 MIX", text, C_WHITE, dub_isolator.mix, 127u);
         if (dub_tape_send) dub_ui_num(text, dub_tape_send); else dub_ui_put(text, "DRY");
         dub_ui_row(2, "K3 SEND", text, dub_tape_send ? RGB(75, 210, 150) : C_GRAY, dub_tape_send, 127u);
-        cv_text(6, 218, &FONT_XS, "SEL ON/OFF   HOME BACK", C_GRAY);
+        cv_text(6, 218, &FONT_XS, "SEL ON/OFF", C_GRAY);
     } else if (page == DUB_PG_SIREN) {
         dub_ui_put(dub_ui_num(text, dub_siren.freq_hz), " HZ");
         dub_ui_row(0, "K1 PITCH", text, RGB(255, 140, 25), dub_siren.freq_hz - 220u, 980u);
@@ -143,7 +161,7 @@ static void gateway_dub_draw(void)
         cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
         dub_ui_num(text, dub_tape_tone);
         cv_text(90, 168, &FONT_L, text, C_WHITE);
-        cv_text(6, 218, &FONT_XS, "TAPE ECHO   HOME BACK", C_GRAY);
+        cv_text(6, 218, &FONT_XS, "HOME BACK", C_GRAY);
     } else {
         static const char *const band_names[DUB_BANDS] = {"K1 SUB", "K2 BASS", "K3 MIDS", "A4 TOPS"};
         for (unsigned b = 0; b < DUB_BANDS; b++) {
@@ -156,7 +174,7 @@ static void gateway_dub_draw(void)
                            (unsigned)(p->gain_db + 24), 36u);
             }
         }
-        cv_text(6, 218, &FONT_XS, "MUTE KEYS KILL BANDS   HOME BACK", C_GRAY);
+        cv_text(6, 218, &FONT_XS, "KEYS KILL   SEL LIFTS", C_GRAY);
     }
 }
 /* the page's knobs: enc is EN_*, delta the detents */

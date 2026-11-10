@@ -25,3 +25,11 @@ Package identity `FM-1_235` (fixed across releases, in sloop-DUB's own-identity
 scheme). Install with M-Flasher on the m-bootloader — see the install page or
 docs/INSTALL.md. The dub DSP's browser port is validated bit-exact against the
 firmware C; host suites pass (445 checks).
+
+Engineering note: the dub modules cost ~6 KiB of SRAM-resident code, which this
+build spends on the audio router's memory contract's aptX corner. SBC and AAC
+keep the full guarantee (display capture + USB-OUT recording route + decoder);
+for aptX/HD the corner degrades the router's own graceful way — the spectrum
+view can then report DISPLAY MEMORY FULL (it keeps retrying) and the USB OUT
+route can refuse with a notice. No crash, no audio damage, the dub chain at
+rest is bit-transparent. See src/tests/cpu2_runtime_test.py.

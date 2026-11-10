@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory() as temp:
     bundle = root / 'bundle';bundle.mkdir()
     output = root / 'out';output.mkdir()
     firmware = b'verified firmware'
-    (bundle / 'audio-router.fwsc').write_bytes(firmware)
+    (bundle / 'dub-box.fwsc').write_bytes(firmware)
     info = dict(tag='v0.1.1', firmware_sha256=hashlib.sha256(firmware).hexdigest())
     (bundle / 'manifest.json').write_text(json.dumps(info))
     for name in release.NOTICES:
@@ -46,16 +46,16 @@ with tempfile.TemporaryDirectory() as temp:
         assert f'{name}: copyright &lt;author&gt; &amp; contributors' in text
     release.prepare(bundle, 'v0.1.1', 'owner/repo', text, output)
     assert notes.read_text() == text, 'Repeated publication must not duplicate notices'
-    (bundle / 'audio-router.fwsc').write_bytes(b'changed')
+    (bundle / 'dub-box.fwsc').write_bytes(b'changed')
     try:
         release.prepare(bundle, 'v0.1.1', 'owner/repo', '', output)
         raise AssertionError('accepted mismatched firmware')
     except ValueError:
         pass
-    (bundle / 'audio-router.fwsc').write_bytes(firmware)
+    (bundle / 'dub-box.fwsc').write_bytes(firmware)
 
     state = dict(tagName='v0.1.1', body='Changes', isDraft=False, isPrerelease=False,
-                 assets=[dict(name='audio-router.fwsc'), dict(name='LICENSE')])
+                 assets=[dict(name='dub-box.fwsc'), dict(name='LICENSE')])
     commands = []
     fail_upload = False
     def fake_gh(*args):
@@ -91,7 +91,7 @@ with tempfile.TemporaryDirectory() as temp:
         release.publish(bundle, 'v0.1.1', 'owner/repo', state.copy())
         assert state['assets'] == [dict(name=asset.name)]
         assert next(i for i,c in enumerate(commands) if c[1]=='upload') < next(i for i,c in enumerate(commands) if c[1]=='delete-asset')
-        state['assets'] = [dict(name='audio-router.fwsc'), dict(name='LICENSE')]
+        state['assets'] = [dict(name='dub-box.fwsc'), dict(name='LICENSE')]
         fail_upload = True
         commands.clear()
         try:
@@ -116,14 +116,14 @@ with tempfile.TemporaryDirectory() as temp:
         for notice in ('LGPL-2.1.txt', 'APTX-NOTICE.md'):
             assert notice in state['body']
         commands.clear()
-        (bundle / 'audio-router.fwsc').write_bytes(b'corrupt')
+        (bundle / 'dub-box.fwsc').write_bytes(b'corrupt')
         try:
             release.publish(bundle, 'v0.1.1', 'owner/repo', state.copy(), recreate=True)
             raise AssertionError('replacement was not validated before deletion')
         except ValueError:
             pass
         assert not commands
-        (bundle / 'audio-router.fwsc').write_bytes(firmware)
+        (bundle / 'dub-box.fwsc').write_bytes(firmware)
         commands.clear()
         release.tidy_legacy('v0.1.1', 'owner/repo')
         assert all(c[1]=='view' for c in commands), 'Already migrated releases must be untouched'
@@ -133,7 +133,7 @@ with tempfile.TemporaryDirectory() as temp:
         assert all(c[1]=='view' for c in commands), 'Unrecognized releases must be untouched'
         info['tag'] = 'v0.1'
         (bundle / 'manifest.json').write_text(json.dumps(info))
-        for name in ('audio-router-source.tar.xz', 'audio-router-debug.tar.xz', 'fm1-uboot.boot', 'INSTALL.txt'):
+        for name in ('dub-box-source.tar.xz', 'dub-box-debug.tar.xz', 'fm1-uboot.boot', 'INSTALL.txt'):
             (bundle / name).write_bytes(b'legacy artifact')
         (bundle / 'SHA256SUMS').write_text(''.join(
             f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n' for p in sorted(bundle.iterdir())))

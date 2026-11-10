@@ -43,6 +43,8 @@ int main(void)
     dub_filter_set(64);
     /* the tape echo: the throw goes in, the wet returns a tape time later */
     dub_init();
+    static int16_t tape_store[DUB_TAPE_LEN];
+    dub_tape_attach(tape_store);
     dub_tape_set_send(127);dub_tape_set_lvl(127);dub_tape_set_fb(0);dub_tape_set_ms(400);
     int32_t loud=0,early=0;
     for(unsigned b=0;b<120;b++){
