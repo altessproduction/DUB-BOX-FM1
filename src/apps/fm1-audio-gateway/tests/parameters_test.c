@@ -15,7 +15,12 @@ static void leds(int muted)
     uint32_t dim=((1u<<B_HOME)|(1u<<B_EDIT)|(1u<<B_FX)) & ~active;
     if(gateway_bt_mode)dim|=1u<<B_OCTUP;
     assert(lights_b == ((muted ? 1u << B_PLAY : LED_PLAY_GREEN)|active));
-    assert(lights_db==dim && lights_glow==1 && !lit_keys && !mid_keys && !dim_keys);
+    {   /* the dub keys' dim state rides on every screen (dub_ui.h) */
+        unsigned lk=0,dk=(1u<<1)|(1u<<3)|(1u<<5)|(1u<<8)|(1u<<25);
+        for(unsigned g=0;g<4;g++)if(dub_isolator.p[g].mute){lk|=1u<<gateway_dub_kill_keys[g];dk&=~(1u<<gateway_dub_kill_keys[g]);}
+        if(gateway_dub_sir_held){lk|=1u<<25;dk&=~(1u<<25);}
+        assert(lights_db==dim && lights_glow==1 && lit_keys==lk && !mid_keys && dim_keys==dk);
+    }
     assert(lit_btn == ((1u << B_PLAY)|active) && dim_btn==dim);
 }
 static void defaults_and_saved_preferences(void)

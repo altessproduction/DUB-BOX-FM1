@@ -26,9 +26,17 @@ Press **OCT−** and the DUB screen takes over the display, four pages:
 | Page | What it does |
 | --- | --- |
 | **DUB** | K1 the DJ filter (bipolar: lowpass left, highpass right, FLAT at the center detent, sweeps glide), K2 the mix, K3 the throw into the tape echo. SEL switches the module. |
-| **SIREN** | K1 pitch 220–1200 Hz, K2 rate 1–16 Hz, K3 level, ALGO the LFO type (WAIL, HILO, RAMP, SWEEP, SPACE), SEL the wave (SQR, PLS, SAW, TRI, SIN). **REC** (or SEL held) sounds it — from any screen. |
+| **SIREN** | K1 pitch 220–1200 Hz, K2 rate 1–16 Hz, K3 level, ALGO the LFO type (WAIL, HILO, RAMP, SWEEP, SPACE), SEL the wave (SQR, PLS, SAW, TRI, SIN). **REC** or the **last black key** (held) sounds it — from any screen. |
 | **DELAY** | The tape echo: K1 time 40–740 ms, K2 feedback, K3 level, ALGO tone. The time glides like a tape's sag, the head wanders (wow 0.7 Hz, flutter 6.3 Hz), the repeats pass the damping and a soft clip, warming pass by pass. |
-| **ISO** | Four bands — SUB 90, BASS 420, MIDS 2600, TOPS — K1/K2/K3/ALGO their gains −24…+12 dB, the mixer's mute keys kill them; all four at once is the total kill. SEL lifts every kill. |
+| **ISO** | Four bands — SUB 90, BASS 420, MIDS 2600, TOPS — K1/K2/K3/ALGO their gains −24…+12 dB, the **first four black keys** (OP1–OP4) kill them; all four at once is the total kill. SEL lifts every kill. |
+
+**The keys are the performance**, on every screen, no page needed: the first
+four black keys (F♯3 G♯3 A♯3 C♯4 — the OP1–OP4 prints) toggle the ISO band
+kills — SUB, BASS, MIDS, TOPS, each key's LED lit while its band is down — and
+the last black key (F♯5) sounds the siren while held: hold it and it sings,
+release it and it dies away. All four kills together is the total kill, SEL on
+the ISO page lifts them, and a kill wakes the module (DUB ON) if it was off.
+The mixer's white mute/solo keys (F3–B3/F4–B4) keep their role on the mixer.
 
 **PLAY** mutes the master — the drop. Everything persists across boots
 (settings v17), and the dub chain rests bit-transparent when off.
@@ -46,7 +54,7 @@ DUB-BOX runs on the [m-bootloader](https://github.com/jvitkauskas/m-bootloader)
 
 1. Back your unit up first — a settings export is not a firmware backup
    ([MvaveFM1Unbricker](https://github.com/Quixotic7/MvaveFM1Unbricker)).
-2. Download [`dub-box-1.0.1.fwsc`](docs/firmware/dub-box-1.0.1.fwsc) (or the
+2. Download [`dub-box-1.0.2.fwsc`](docs/firmware/dub-box-1.0.2.fwsc) (or the
    release asset) and check its SHA-256 (`docs/firmware/SHA256SUMS`).
 3. Turn the FM-1 off, on while holding **REC**.
 4. Flash with M-Flasher — bootloader replacement **disabled**, settings erase

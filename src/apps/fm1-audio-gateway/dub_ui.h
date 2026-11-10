@@ -2,8 +2,9 @@
  * DUB-BOX's DUB screen: the four pages DUB, SIREN, DELAY and ISO, sloop's dub
  * pages on the router's controls. OCT- enters and walks the pages, HOME leaves.
  * K1..K3 (and ALGO where a page has a fourth) rule the page's values, SEL does
- * the page's switch (the module on DUB, the siren's wave on SIREN), the mixer's
- * mute keys kill the ISO bands, REC (or SEL held) sounds the siren at LEVEL.
+ * the page's switch (the module on DUB, the siren's wave on SIREN). The keys are
+ * the performance, from any screen: the four first black keys kill the ISO bands,
+ * the last black key (or REC, or SEL held) sounds the siren at LEVEL.
  * Included by app.c after fx/ui.h: cv_*, the fonts and the FX helpers exist. */
 #define DUB_UI_ROW_Y0 44
 #define DUB_UI_ROW_DY 42
@@ -11,7 +12,15 @@ static uint8_t gateway_dub_page;
 enum { DUB_PG_MAIN = 0, DUB_PG_SIREN, DUB_PG_DELAY, DUB_PG_ISO, DUB_PG_N };
 static const char *const gateway_dub_page_names[DUB_PG_N] = {"DUB", "SIREN", "DELAY", "ISOLATOR"};
 static uint8_t gateway_dub_sir_lvl = 88;           /* the SIREN page's LEVEL, what REC sounds at */
-static uint8_t gateway_dub_sir_held;               /* REC / held SEL: the siren sounds */
+static uint8_t gateway_dub_sir_held;               /* REC / held SEL / the black key: the siren sounds */
+static uint8_t gateway_dub_sir_key;                /* the last black key holds it (REC may hold it too) */
+/* the keyboard's dub keys, every screen: the four first black keys (F#3 G#3 A#3
+ * C#4, the OP1..OP4 prints) kill the ISO bands — SUB BASS MIDS TOPS, their LED
+ * lit while killed — and the last black key (F#5, no print) sounds the siren,
+ * held it sings, released it dies. A kill wakes the module (DUB ON) if it was
+ * off: a mute that silently did nothing would read as broken. */
+static const uint8_t gateway_dub_kill_keys[DUB_BANDS] = {1, 3, 5, 8};
+#define GATEWAY_SIR_KEY 25u
 
 static void dub_tape_hold_wanted(void);
 static void dub_changed(void)
@@ -167,7 +176,7 @@ static void gateway_dub_draw(void)
                        gateway_dub_sir_lvl, 127u);
             cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
             cv_text(90, 168, &FONT_L, DUB_SIR_TYPE_NAMES[dub_siren.type], C_WHITE);
-            cv_text(6, 218, &FONT_XS, "SEL WAVE   REC SOUNDS", C_GRAY);
+            cv_text(6, 218, &FONT_XS, "SEL WAVE  REC/LAST KEY SOUNDS", C_GRAY);
         } else if (page == DUB_PG_DELAY) {
             dub_ui_val(text, dub_tape_ms, " MS");
             dub_ui_row(0, "K1 TIME", text, RGB(75, 155, 255), dub_tape_ms - 40u, DUB_TAPE_MS_MAX - 40u);
@@ -192,7 +201,7 @@ static void gateway_dub_draw(void)
                                (unsigned)(p->gain_db + 24), 36u);
                 }
             }
-            cv_text(6, 218, &FONT_XS, "KEYS KILL   SEL LIFTS", C_GRAY);
+            cv_text(6, 218, &FONT_XS, "BLACK KEYS KILL   SEL LIFTS", C_GRAY);
         }
         cv_oy = 0; cv_blit(0, band);
     }
@@ -270,6 +279,9 @@ static void gateway_dub_kill(unsigned band)
     dub_band_param_t p = dub_isolator.p[band];
     p.mute = (uint8_t)!p.mute;
     dub_isolator_set_band(&dub_isolator, band, p);
+    if (!dub_on)               /* the black keys are the performance: a kill wakes the module */
+        dub_on = 1;
+    gateway_lights();          /* the key's LED follows its band, on every screen */
     dub_changed();
 }
 static void gateway_dub_siren_hold(int down)

@@ -48,6 +48,22 @@ Meters continue showing post-fader signal before their mute/solo gates, in
 gray when suppressed. Gray styling is confined to the mixer. PLAY and the
 MASTER mute box control the same state.
 
+## DUB screen and keys
+
+OCT− opens the DUB screen (DUB, SIREN, DELAY, ISO); OCT− again walks the pages
+and HOME leaves. K1–K3 (ALGORITHM where a page has a fourth) set the page's
+values; SEL is the page's switch — the module on DUB, the siren's wave on SIREN
+— and lifts every kill on ISO. REC, or holding SEL on the DUB page, sounds the
+siren at its LEVEL.
+
+The keyboard is the performance and works on every screen: the first four black
+keys (F♯3/G♯3/A♯3/C♯4 — the OP1–OP4 prints) toggle the ISO band kills (SUB,
+BASS, MIDS, TOPS; a key's LED is lit while its band is down), and the last
+black key (F♯5) sounds the siren while held — release it and it dies away. All
+four kills together are the total kill. A kill wakes the DUB module (DUB ON on
+the DUB page) if it was off. While the mixer is visible the white keys keep
+their strip mute/solo role (F3–B3 mute, F4–B4 solo).
+
 ## EQ and limiter
 
 The EQ page has five band cards and a combined response graph. SELECT cycles

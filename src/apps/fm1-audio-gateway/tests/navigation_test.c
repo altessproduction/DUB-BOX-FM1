@@ -11,7 +11,13 @@ static void lights(void)
     if(gateway_screen==GATEWAY_FX){if(gateway_fx_limiter?gateway_fx_params.lim:gateway_fx_params.eq)active|=1u<<B_SEL;else dim|=1u<<B_SEL;}
     if(gateway_bt_mode)dim|=1u<<B_OCTUP;
     assert(lights_b==(active|(gateway_muted?1u<<B_PLAY:LED_PLAY_GREEN)));
-    assert(dim_btn==dim && lights_db==dim && lights_glow==1 && !lit_keys && !mid_keys && !dim_keys);
+    {   /* the dub keys ride on every screen (dub_ui.h): a killed band's black key
+         * lit, the rest dim, the siren key lit while it sounds */
+        unsigned lk=0,dk=(1u<<1)|(1u<<3)|(1u<<5)|(1u<<8)|(1u<<25);
+        for(unsigned g=0;g<4;g++)if(dub_isolator.p[g].mute){lk|=1u<<gateway_dub_kill_keys[g];dk&=~(1u<<gateway_dub_kill_keys[g]);}
+        if(gateway_dub_sir_held){lk|=1u<<25;dk&=~(1u<<25);}
+        assert(dim_btn==dim && lights_db==dim && lights_glow==1 && lit_keys==lk && !mid_keys && dim_keys==dk);
+    }
 }
 int main(void)
 {

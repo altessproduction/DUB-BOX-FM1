@@ -1,3 +1,23 @@
+# DUB-BOX 1.0.2
+
+The keyboard joins the performance — the black keys drive the dub:
+
+- **The last black key sounds the siren**, from any screen, like REC: hold it
+  and it sings, release it and it dies away. REC and a held SEL (on the DUB
+  page) keep working; the three share one hold, and the siren stops when all
+  are up. The key's LED is lit while the siren sounds.
+- **The first four black keys (F♯3 G♯3 A♯3 C♯4, the OP1–OP4 prints) kill the
+  ISO bands** — SUB, BASS, MIDS, TOPS, one toggle each, from any screen (the
+  kills used to sit on the first four white keys and only on the ISO page).
+  All four together is the total kill, SEL on the ISO page lifts every kill,
+  and a kill wakes the module (DUB ON) if it was off. The keys' LEDs show the
+  kills on every screen; the ISO page's hint now reads "BLACK KEYS KILL".
+- The mixer's white mute/solo keys (F3–B3 / F4–B4) are unchanged.
+- The browser emulator's manual documents the keys; the host suites (445
+  checks) exercise the keys from the HOME screen.
+
+Package identity `FM-1_235`, `dub-box-1.0.2.fwsc` (size noted on the release).
+
 # DUB-BOX 1.0.1
 
 Two drawing fixes on the DUB screen (they hit the device the same way they hit

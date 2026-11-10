@@ -239,10 +239,12 @@ static void gateway_lights(void)
         if(gateway_mixer_muted(g))keys|=m;else dim_keys|=m;
         if(gateway_mix_solos&(1u<<g))keys|=s;else dim_keys|=s;
     }
-    if(gateway_screen==GATEWAY_DUB && gateway_dub_page==DUB_PG_ISO)for(unsigned g=0;g<4;g++){
-        uint32_t m=1u<<gateway_mute_keys[g];
+    /* the black keys' state, every screen: a kill's LED lit while its band is down */
+    for(unsigned g=0;g<DUB_BANDS;g++){
+        uint32_t m=1u<<gateway_dub_kill_keys[g];
         if(dub_isolator.p[g].mute)keys|=m;else dim_keys|=m;
     }
+    if(gateway_dub_sir_held)keys|=1u<<GATEWAY_SIR_KEY;else dim_keys|=1u<<GATEWAY_SIR_KEY;
     plat_lights((gateway_muted ? 1u << B_PLAY : LED_PLAY_GREEN) | active,
             keys, dim, dim_keys, 1);
     plat_lights_mid(0, 0);
@@ -508,10 +510,20 @@ void app_input_only(void)
         gateway_mixer_toggle(3,0);
         plat_cpu_work_end();
     }
-    /* DUB-BOX: REC (anywhere) sounds the siren at LEVEL; releasing lets it die away. */
+    /* DUB-BOX: REC (anywhere) sounds the siren at LEVEL; releasing lets it die away.
+     * The last black key does the same, held it sings, released it dies — REC and
+     * the key share the hold, the siren stops when both are up. */
     if (gateway_ui_ready) {
         if (pressed & (1u << B_REC)) gateway_dub_siren_hold(1);
-        else if (!(buttons & (1u << B_REC)) && gateway_dub_sir_held) gateway_dub_siren_hold(0);
+        else if (!(buttons & (1u << B_REC)) && gateway_dub_sir_held && !gateway_dub_sir_key)
+            gateway_dub_siren_hold(0);
+        if (key_pressed & (1u << GATEWAY_SIR_KEY)) {
+            gateway_dub_sir_key = 1;
+            gateway_dub_siren_hold(1);
+        } else if (!(keys & (1u << GATEWAY_SIR_KEY)) && gateway_dub_sir_key) {
+            gateway_dub_sir_key = 0;
+            if (!(buttons & (1u << B_REC))) gateway_dub_siren_hold(0);
+        }
     }
     if(gateway_fx_dialog){
         gateway_oct_tracking=gateway_fx_save_tracking=0;
@@ -566,7 +578,7 @@ void app_input_only(void)
                 gateway_dub_sel_fire = 1; gateway_dub_siren_hold(1);
             } else if (!(buttons & (1u << B_SEL))) {
                 if (!gateway_dub_sel_fire) gateway_dub_sel();
-                else gateway_dub_siren_hold(0);
+                else if (!gateway_dub_sir_key) gateway_dub_siren_hold(0);
                 gateway_dub_sel_tracking = 0;
             }
         }
@@ -648,9 +660,8 @@ void app_input_only(void)
         if(key_pressed&(1u<<gateway_mute_keys[g]))gateway_mixer_toggle(g,0);
         if(key_pressed&(1u<<gateway_solo_keys[g]))gateway_mixer_toggle(g,1);
     }
-    else if(gateway_screen==GATEWAY_DUB && gateway_dub_page==DUB_PG_ISO)
-        for(unsigned g=0;g<4;g++)
-            if(key_pressed&(1u<<gateway_mute_keys[g]))gateway_dub_kill(g);
+    if(gateway_ui_ready)for(unsigned g=0;g<DUB_BANDS;g++)   /* the black keys kill, from any screen */
+        if(key_pressed&(1u<<gateway_dub_kill_keys[g]))gateway_dub_kill(g);
     /* Drain incoming musical messages without generating sound or forwarding notes.
      * The platform handles USB-MIDI update/reader commands independently. Bound a pass. */
     for (i = 0; i < 32u && plat_midi_in(&pkt, &port); i++)

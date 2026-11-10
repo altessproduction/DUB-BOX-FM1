@@ -80,8 +80,21 @@ static void controls(void){
     assert(gateway_muted && (lights_b&(1u<<B_PLAY)) && !(lights_b&LED_PLAY_GREEN));
     tap(B_PLAY);assert(!gateway_muted && !gateway_mixer_muted(3) && (dim_keys&(1u<<6)) && (lights_b&LED_PLAY_GREEN));
     key(6);assert(gateway_muted && (lights_b&(1u<<B_PLAY)));key(6);assert(!gateway_muted);
-    tap(B_HOME);assert(!lit_keys && !dim_keys);
-    unsigned m=gateway_mix_mutes,s=gateway_mix_solos;key(0);key(12);assert(m==gateway_mix_mutes && s==gateway_mix_solos);
+    tap(B_HOME);
+    unsigned m=gateway_mix_mutes,s=gateway_mix_solos;
+    {   /* the dub keys work from any screen, HOME included: the first black key
+         * kills SUB (a kill wakes the module), the last black key holds the siren */
+        const unsigned dub=(1u<<1)|(1u<<3)|(1u<<5)|(1u<<8)|(1u<<25);
+        assert(!(lit_keys&(all|dub)) && !(dim_keys&all) && (dim_keys&dub)==dub);
+        dub_on=0;dub_isolator.p[0].mute=0;gateway_dub_sir_held=gateway_dub_sir_key=0;
+        key(1);assert(dub_on && dub_isolator.p[0].mute && (lit_keys&(1u<<1)) && gateway_mix_mutes==m);
+        key(1);assert(!dub_isolator.p[0].mute && (dim_keys&(1u<<1)));
+        held_keys=1u<<25;app_input_only();
+        assert(gateway_dub_sir_held && gateway_dub_sir_key && (lit_keys&(1u<<25)));
+        held_keys=0;app_input_only();
+        assert(!gateway_dub_sir_held && !gateway_dub_sir_key && (dim_keys&(1u<<25)));
+    }
+    key(0);key(12);assert(m==gateway_mix_mutes && s==gateway_mix_solos);
     held_keys=1u;app_input_only();tap(B_GLO);assert(gateway_mix_mutes==m);held_keys=0;app_input_only();
     key(0);assert(gateway_mix_mutes==(m^1u));
     puts("PASS: F3/G3/A3/B3 mute, F4/G4/A4/B4 solo, edge-only Mixer scope, dim/full LEDs and two-way PLAY/MASTER M synchronization");

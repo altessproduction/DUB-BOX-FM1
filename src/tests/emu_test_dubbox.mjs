@@ -53,7 +53,30 @@ for (let q = 0; q < 40; q++) {
 check(peakUSB > 0.001, `the page's source plays through the router (peak ${peakUSB.toFixed(4)})`);
 emu.send({ type: "uac", on: false });
 
+// the dub keys: the last black key (25) sounds the siren like REC, held it sings,
+// released it dies; the first black key (1) kills the SUB band and wakes the module
+emu.send({ type: "keys", mask: 1 << 25 });
+const loudKey = emu.run(300);
+emu.send({ type: "keys", mask: 0 });
+emu.run(250);
+check(loudKey > 0.001 && loudKey > quiet * 4, `the last black key sounds the siren (peak ${loudKey.toFixed(4)})`);
+const litSiren = emu.take("frame").filter((f) => f.keys !== undefined).pop();
+check(!!litSiren && !(litSiren.keys & (1 << 25)) && !!(litSiren.dimKeys & (1 << 25)), "the siren key's LED rests dim after the release");
+emu.send({ type: "keys", mask: 1 << 1 });
+emu.run(300);
+emu.send({ type: "keys", mask: 0 });
+emu.run(300);
+const litKill = emu.take("frame").filter((f) => f.keys !== undefined).pop();
+check(!!litKill && !!(litKill.keys & (1 << 1)) && !(litKill.keys & (1 << 25)), "the first black key's LED lights while SUB is killed");
+emu.send({ type: "keys", mask: 1 << 1 });   // lift the kill: the key back to dim
+emu.run(300);
+emu.send({ type: "keys", mask: 0 });
+emu.run(300);
+const litLift = emu.take("frame").filter((f) => f.keys !== undefined).pop();
+check(!!litLift && !!(litLift.dimKeys & (1 << 1)), "the second press lifts the kill (the key back to dim)");
+
 // PLAY (button 10) mutes the master: the lights' PLAY bit and the sound stop
+emu.run(100);                                // queue a frame (the checks above drained them)
 const lit0 = emu.take("frame").slice(-1)[0];
 emu.send({ type: "buttons", mask: 1 << 10 });
 emu.run(150);
