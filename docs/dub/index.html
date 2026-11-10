@@ -1,94 +1,973 @@
 <!doctype html>
-<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<!-- SPDX-License-Identifier: GPL-3.0-only
+     DUB-BOX's browser emulator page: the FM-1 faceplate (geometry traced from the user manual, after
+     altessproduction/sloop-dub-fm1's GPL-3.0 emulator) driving the real firmware — app.wasm, the whole
+     DUB-BOX app, compiled to WebAssembly by fm1-base's tools/build.py --web (MPL-2.0, Charles Vestal).
+     The screen, the menus, the sound, the saved settings: the firmware's own code. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DUB-BOX · web emulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>DUB-BOX — FM-1 emulator</title>
+<meta name="description" content="DUB-BOX for the M-VAVE FM-1, in the browser: the same code the FM-1 runs.">
+<meta name="theme-color" content="#101114">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DUB-BOX">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#000; --fg:#f2f2f2; --dim:#8a8a92; --tile:#141417; --line:#26262c;
-          --green:#1ecc70; --orange:#ff621a; --yellow:#ffc618; --blue:#4d9bff; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg);
-         font:15px/1.6 "Helvetica Neue", -apple-system, BlinkMacSystemFont, Arial, sans-serif; }
-  main { max-width: 980px; margin: 0 auto; padding: 28px 16px 60px; }
-  .top { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-  .top img { height: 64px; }
-  .top h1 { font-size: 15px; letter-spacing: .14em; margin: 0; text-transform: uppercase; }
-  .top .links { margin-left:auto; font-size: 13px; }
-  .top a { color: var(--dim); text-decoration: none; margin-left: 14px; }
-  .top a:hover { color: var(--fg); }
-  .wrap { display:flex; gap: 28px; margin-top: 26px; flex-wrap: wrap; }
-  .panel { background: var(--tile); border: 1px solid var(--line); padding: 18px; }
-  .lcdpanel { flex: 0 0 auto; }
-  canvas#lcd { display:block; width: 480px; max-width: 92vw; height:auto; background:#000;
-               border: 10px solid #101013; border-radius: 8px; image-rendering: pixelated; }
-  .knobs { flex: 1 1 320px; display: flex; flex-direction: column; gap: 14px; }
-  .krow { display:flex; align-items:center; gap: 12px; }
-  .krow label { width: 92px; color: var(--dim); font-size: 13px; }
-  .krow input[type=range] { flex: 1; accent-color: var(--orange); }
-  .krow .kv { width: 34px; text-align: right; font-variant-numeric: tabular-nums; color: var(--fg); }
-  .btns { display:flex; flex-wrap:wrap; gap: 10px; margin-top: 8px; }
-  button { font: 600 13px/1 inherit; color: var(--fg); background: var(--tile); border: 1px solid var(--line);
-           padding: 13px 18px; cursor: pointer; letter-spacing: .06em; }
-  button:hover { border-color: var(--dim); }
-  button.held { background: var(--orange); color: #000; border-color: var(--orange); }
-  button#rec.held { background: var(--red, #ff2c34); border-color: #ff2c34; color:#fff; }
-  .srcs { display:flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
-  select, input[type=file] { color: var(--fg); background: var(--tile); border: 1px solid var(--line); padding: 10px; font: inherit; }
-  #status { color: var(--dim); font-size: 13px; min-height: 1.5em; }
-  h2 { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin: 26px 0 8px; }
-  p { max-width: 72ch; }
-  .small { color: var(--dim); font-size: 12.5px; }
-  a { color: inherit; }
-  .keys { color: var(--dim); font-size: 13px; }
-  kbd { background: var(--tile); border: 1px solid var(--line); padding: 1px 6px; font: 12px monospace; }
+:root {
+    --txt: #c9cdd4;
+    --dim: #70757d;
+    --accent: #ff621a;                    /* DUB-BOX's orange, against the sloop gold */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
+html, body { background: #101114; color: var(--txt); font-family: "Terminus (TTF)", "DejaVu Sans Mono", ui-monospace, monospace; }
+body { display: flex; flex-direction: column; align-items: center; padding: 18px 10px 40px; }
+
+h1 { font-size: 15px; letter-spacing: 3px; color: var(--dim); margin-bottom: 12px; font-weight: normal; }
+h1 b { color: var(--txt); }
+
+/* the device: every control is absolutely positioned from the FM-1 user
+   manual's panel drawing (page 1), normalized to the case outline */
+#device {
+    position: relative;
+    background: linear-gradient(175deg, #24272c, #1a1c20 55%, #17191d);
+    border: 1px solid #000;
+    border-radius: 34px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07), inset 0 -2px 6px rgba(0,0,0,.4);
+}
+
+.pane {                       /* recessed containers (buttons, OCT, keybed) */
+    position: absolute; transform: translate(-50%, -50%); background: #141619;
+    border: 1px solid #000; border-radius: 14px;
+    box-shadow: inset 0 1px 5px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.05);
+}
+
+.lab { position: absolute; font-size: 11px; letter-spacing: 2px; color: var(--dim); text-align: center; transform: translate(-50%, -50%); white-space: nowrap; }
+
+.cap {
+    position: absolute; border-radius: 50%; transform: translate(-50%, -50%);
+    background: radial-gradient(circle at 35% 30%, #3a3e46, #15161a 75%);
+    border: 1px solid #000; cursor: ns-resize; touch-action: none;
+    box-shadow: 0 3px 8px rgba(0,0,0,.6), inset 0 1px 1px rgba(255,255,255,.1);
+}
+.cap::before {                /* knurled edge */
+    content: ""; position: absolute; inset: 7%; border-radius: 50%;
+    background: repeating-conic-gradient(#2c2f35 0deg 9deg, #202329 9deg 18deg);
+    opacity: .55;
+}
+.cap::after {                 /* pointer */
+    content: ""; position: absolute; left: 50%; top: 7%; width: 6%; height: 28%;
+    margin-left: -3%; border-radius: 3px; background: var(--pcol, #cfd3da); z-index: 1;
+    transform-origin: 50% 154%; transform: rotate(var(--rot, 0deg));
+}
+.cap .grab {                  /* enlarged touch target (compact only) */
+    position: absolute; inset: -16px; border-radius: 50%;
+    touch-action: none; display: none;
+}
+body.compact .cap .grab { display: block; }
+
+#bezel {
+    position: absolute; background: #000; border-radius: 12px;
+    border: 1px solid #000;
+    box-shadow: inset 0 0 14px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.05);
+    display: flex; align-items: center; justify-content: center;
+}
+#screen { image-rendering: pixelated; display: block; background: #000; }
+
+.btn {
+    position: absolute; transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 11px; letter-spacing: 1px; line-height: 1.1;
+    background: linear-gradient(#34383f, #22252a);
+    border: 1px solid #000; border-radius: 8px; cursor: pointer; color: var(--txt);
+    box-shadow: 0 2px 4px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    touch-action: none;
+}
+.btn.down { box-shadow: 0 1px 2px rgba(0,0,0,.5); background: linear-gradient(#2a2d33, #1d2024); }
+.btn.lit { color: #fff; box-shadow: 0 0 14px 2px rgba(255,98,26,.45), inset 0 1px 0 rgba(255,255,255,.1); background: linear-gradient(#5a4034, #3c2c26); }
+.btn.glow { box-shadow: 0 0 8px 0 rgba(255,98,26,.2), 0 2px 4px rgba(0,0,0,.5); }
+.btn kbd { position: absolute; top: 1px; right: 4px; font-size: 8px; color: #565b63; }
+
+/* silicone pill keys; the slot is the LED window, as on the device */
+.pill {
+    position: absolute; transform: translate(-50%, -50%);
+    background: linear-gradient(#f2f0ea, #d7d4cb);
+    border: 1px solid #101214; cursor: pointer; touch-action: none;
+    box-shadow: 0 3px 6px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.55);
+}
+.pill .slot {
+    position: absolute; left: 50%; top: 14%; width: 14%; height: 36%;
+    transform: translateX(-50%); border-radius: 999px; background: #1b1d20;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.8);
+}
+.pill.bk .slot { top: 12%; height: 40%; }
+.pill i { position: absolute; bottom: 6%; left: 0; right: 0; text-align: center; font-size: 8px; color: #8a877d; font-style: normal; letter-spacing: 0; }
+.pill.down { background: linear-gradient(#d2cfc8, #c1beb5); }
+.pill.lit .slot { background: #ff8a4d; box-shadow: 0 0 12px 3px rgba(255,138,77,.75), inset 0 0 2px rgba(120,40,0,.6); }
+.pill.glow .slot { background: #6b4630; box-shadow: 0 0 5px 1px rgba(255,138,77,.25); }
+.pill kbd { position: absolute; top: 4%; left: 6%; font-size: 8px; color: #a5a299; }
+.pill.bk kbd { color: #a5a299; }
+
+#power {
+    position: absolute; inset: 0; z-index: 10; border-radius: 34px;
+    background: rgba(8,9,11,.93); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px; cursor: pointer;
+}
+#power span { font-size: 26px; letter-spacing: 8px; color: var(--txt); }
+#power small { color: var(--dim); font-size: 11px; letter-spacing: 1px; max-width: 46ch; text-align: center; line-height: 1.7; }
+#power .ring {
+    width: 74px; height: 74px; border-radius: 50%; border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center; font-size: 30px; color: var(--accent);
+}
+
+/* compact mode (phones / small windows): the device is scaled — and in
+   portrait rotated 90° — to fill the viewport; the script sets the transform */
+body.compact { padding: 0; height: 100vh; height: 100dvh; overflow: hidden; }
+body.compact h1, body.compact #help, body.compact #manual, body.compact #source, body.compact .barwrap { display: none; }
+body.compact #device { position: fixed; left: 50%; top: 50%; }
+
+#fs {
+    position: fixed; z-index: 20; display: none;
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    right: calc(env(safe-area-inset-right, 0px) + 10px);
+    width: 42px; height: 42px; padding: 0;
+    align-items: center; justify-content: center;
+    font-size: 20px; line-height: 1; color: var(--txt); cursor: pointer;
+    background: rgba(32, 35, 40, .72); border: 1px solid rgba(0,0,0,.6);
+    border-radius: 11px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    box-shadow: 0 2px 8px rgba(0,0,0,.45);
+}
+#fs:active { background: rgba(52, 56, 63, .85); }
+body.compact.fs-ok #fs { display: flex; }
+
+#firmware-badge {
+    position: fixed; z-index: 20;
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    left: calc(env(safe-area-inset-left, 0px) + 10px);
+    padding: 11px 14px; font-size: 11px; letter-spacing: 1.5px;
+    color: var(--accent); background: rgba(32, 35, 40, .82);
+    border: 1px solid rgba(0,0,0,.6); border-radius: 11px;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    box-shadow: 0 2px 8px rgba(0,0,0,.45);
+}
+body.compact #firmware-badge { padding: 8px 10px; font-size: 10px; }
+
+/* the row under the device: the parts' buttons, mute, session, reset */
+.barwrap { margin-top: 16px; width: 100%; max-width: 1210px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: center; }
+.bar button {
+    font: 600 12px/1 inherit; letter-spacing: 1px; color: var(--txt);
+    background: linear-gradient(#2c2f35, #202329); border: 1px solid #000; border-radius: 9px;
+    padding: 10px 14px; cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.bar button:hover { border-color: var(--dim); }
+.bar button[aria-pressed="true"] { color: #000; background: linear-gradient(#ff8a4d, #ff621a); }
+.bar .cpu { font-size: 11px; color: var(--dim); }
+#status { text-align: center; font-size: 12px; color: var(--dim); margin-top: 8px; min-height: 1.5em; }
+#status b { color: var(--txt); font-weight: normal; }
+
+/* the sound source: what the browser plays into the emulated USB port */
+#source {
+    margin-top: 18px; width: 100%; max-width: 1210px;
+    font-size: 12px; color: var(--dim); line-height: 1.8; text-align: center;
+}
+#source .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin-top: 8px; }
+#source button {
+    font: 600 12px/1 inherit; letter-spacing: 1px; color: var(--txt);
+    background: linear-gradient(#2c2f35, #202329); border: 1px solid #000; border-radius: 9px;
+    padding: 10px 16px; cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
+}
+#source button.on { color: #000; background: linear-gradient(#8fe89a, #1ecc70); }
+#source input[type=file] { display: none; }
+#source b { color: var(--txt); font-weight: normal; }
+
+#help { max-width: 1210px; margin-top: 14px; font-size: 11px; color: var(--dim); line-height: 1.7; text-align: center; }
+#help b { color: var(--txt); font-weight: normal; }
+#help a { color: var(--accent); }
+
+/* the manual under the device (hidden in compact mode) */
+#manual {
+    max-width: 1140px; width: 100%; margin-top: 34px;
+    font-family: "Inter Tight", "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 14.5px; line-height: 1.7; color: #b7bdc6; font-weight: 400;
+}
+body.compact #manual { display: none; }
+#manual h2 {
+    font-family: "Terminus (TTF)", "DejaVu Sans Mono", ui-monospace, monospace;
+    font-size: 14px; letter-spacing: 4px; font-weight: normal; color: var(--accent);
+    display: flex; align-items: center; gap: 14px; margin: 36px 0 18px;
+}
+#manual h2::before { content: ""; width: 26px; height: 2px; background: var(--accent); border-radius: 2px; }
+#manual h2::after { content: ""; flex: 1; height: 1px; background: #23262c; }
+#manual .lead { font-size: 16px; line-height: 1.75; color: #ccd1d8; max-width: 72ch; margin-bottom: 20px; }
+#manual .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; margin-bottom: 14px; }
+#manual .card {
+    background: linear-gradient(170deg, #1c1f24, #171a1e);
+    border: 1px solid #0c0d0f; border-radius: 14px; padding: 18px 20px 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.04);
+}
+#manual .card.wide { grid-column: 1 / -1; }
+#manual .card.note { border-left: 3px solid var(--accent); }
+#manual h3 {
+    font-family: "Terminus (TTF)", "DejaVu Sans Mono", ui-monospace, monospace;
+    font-size: 11px; letter-spacing: 3px; font-weight: normal; color: #8d939c; margin: 0 0 10px;
+}
+#manual p, #manual ul { margin-bottom: 10px; }
+#manual p:last-child, #manual ul:last-child { margin-bottom: 0; }
+#manual ul { padding-left: 0; list-style: none; }
+#manual li { margin-bottom: 8px; padding-left: 16px; position: relative; }
+#manual li::before { content: ""; position: absolute; left: 0; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: #4a4f57; }
+#manual b, #manual strong { color: #eceef1; font-weight: 500; }
+#manual a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(255,98,26,.35); }
+#manual .src { font-size: 12.5px; color: #80868f; margin-top: 16px; }
+#manual kbd {
+    font-family: "Terminus (TTF)", "DejaVu Sans Mono", ui-monospace, monospace;
+    background: linear-gradient(#32363d, #24272c); border: 1px solid #000; border-radius: 5px;
+    padding: 1px 7px 2px; font-size: 11px; color: #e4e7eb;
+    box-shadow: 0 1px 0 rgba(255,255,255,.07) inset, 0 1px 2px rgba(0,0,0,.4);
+    white-space: nowrap;
+}
+#manual .chip {
+    font-family: "Terminus (TTF)", "DejaVu Sans Mono", ui-monospace, monospace;
+    display: inline-block; min-width: 46px; text-align: center;
+    background: linear-gradient(#3b3126, #2b2520); border: 1px solid #000; border-radius: 6px;
+    padding: 3px 9px; font-size: 11px; letter-spacing: 1px; color: var(--accent);
+    box-shadow: 0 1px 0 rgba(255,255,255,.06) inset; white-space: nowrap;
+}
+#manual .kn { font-family: "Terminus (TTF)", "DejaVu Sans Mono", ui-monospace, monospace; font-size: 11.5px; color: #9aa1ab; letter-spacing: .5px; }
+
+/* iOS tip overlay (no Fullscreen API on iPhone → Add to Home Screen) */
+#fstip {
+    position: fixed; inset: 0; z-index: 30; display: none;
+    align-items: center; justify-content: center; padding: 24px;
+    background: rgba(8, 9, 11, .88); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+#fstip.show { display: flex; }
+#fstip .card {
+    max-width: 320px; text-align: center; line-height: 1.6;
+    background: #1c1f24; border: 1px solid #000; border-radius: 16px;
+    padding: 24px 22px; box-shadow: 0 16px 40px rgba(0,0,0,.6);
+}
+#fstip h2 { font-size: 15px; letter-spacing: 2px; color: var(--txt); font-weight: normal; margin-bottom: 12px; }
+#fstip p { font-size: 13px; color: var(--dim); }
+#fstip b { color: var(--accent); font-weight: normal; }
+#fstip .ok {
+    margin-top: 18px; display: inline-block; padding: 9px 22px; cursor: pointer;
+    font-size: 12px; letter-spacing: 1px; color: var(--txt);
+    background: #2a2e34; border: 1px solid #000; border-radius: 9px;
+}
 </style>
 </head>
 <body>
-<main>
-  <div class="top">
-    <img src="../dubbox-logo.png" alt="DUB-BOX">
-    <h1>DUB-BOX · web emulator</h1>
-    <div class="links"><a href="../installer/">install on the FM-1</a><a href="https://github.com/altessproduction/DUB-BOX-FM1" target="_blank" rel="noopener">GitHub</a></div>
-  </div>
+<h1 id="title"><b>DUB-BOX</b> &middot; M-VAVE FM-1 &middot; browser emulator</h1>
 
-  <div class="wrap">
-    <div class="panel lcdpanel">
-      <canvas id="lcd" width="480" height="480"></canvas>
-      <div class="btns">
-        <button id="page">PAGE (OCT−)</button>
-        <button id="sel">SEL</button>
-        <button id="algo">ALGO</button>
-        <button id="rec">REC · SIREN (hold)</button>
-        <button id="mute">MUTE</button>
-      </div>
-    </div>
-    <div class="knobs">
-      <div class="krow"><label>K1</label><input type="range" id="k1" min="0" max="127" value="64"><span class="kv" id="k1v">64</span></div>
-      <div class="krow"><label>K2</label><input type="range" id="k2" min="0" max="127" value="127"><span class="kv" id="k2v">127</span></div>
-      <div class="krow"><label>K3</label><input type="range" id="k3" min="0" max="127" value="0"><span class="kv" id="k3v">0</span></div>
-      <h2>Sound source</h2>
-      <div class="srcs">
-        <button id="go">PLAY</button>
-        <select id="src">
-          <option value="beat">built-in dub beat</option>
-          <option value="mic">microphone (live)</option>
-          <option value="file">audio file</option>
-        </select>
-        <input type="file" id="file" accept="audio/*" hidden>
-      </div>
-      <p id="status"></p>
-    </div>
-  </div>
+<button id="fs" aria-label="Toggle fullscreen" title="Fullscreen">&#x26F6;</button>
 
-  <h2>What this is</h2>
-  <p>The four DUB pages of the <strong>DUB-BOX</strong> firmware for the M-VAVE FM-1 — DUB (the DJ filter, the mix, the throw into the echo), SIREN, DELAY (the tape echo) and ISOLATOR (the four-band kill board) — running the <strong>same integer DSP as the firmware</strong>, ported line for line and validated bit-exact against the C. The audio sources feed the same chain the FM-1's USB and Bluetooth inputs do: isolator → filter → tape echo → out, the siren joined at the master.</p>
-  <p class="keys">Keyboard: <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> kill the ISO bands, <kbd>space</kbd> sounds the siren (hold).</p>
-  <h2>The real thing</h2>
-  <p class="small">On the FM-1: <kbd>OCT−</kbd> enters the DUB screen and walks the pages, <kbd>HOME</kbd> leaves. K1–K3 (and ALGO) are the page's knobs, SEL is the page's switch, the mixer's mute keys kill the ISO bands, and REC (or SEL held) sounds the siren. PLAY mutes the master — the drop. USB audio in/out and the Bluetooth receiver (SBC/AAC/aptX) are the router's own, untouched. <a href="../installer/">Install it on your FM-1 →</a></p>
-</main>
-<script src="dub-core.js"></script>
-<script src="emu.js"></script>
+<div id="firmware-badge" title="Firmware embarqué">DUB-BOX · REAL FIRMWARE</div>
+
+<div id="fstip"><div class="card">
+    <h2>FULLSCREEN</h2>
+    <p>iPhone browsers can't go fullscreen from a button. For the full-screen app, tap the <b>Share</b> icon, then <b>Add to Home Screen</b> — DUB-BOX opens with no browser bars.</p>
+    <span class="ok">GOT IT</span>
+</div></div>
+
+<div id="device">
+    <div id="power"><div class="ring">&#x23FB;</div><span>POWER ON</span><small>lance le vrai firmware DUB-BOX compilé en WebAssembly — le même code que sur le FM-1 : écran, menus, son et réglages</small></div>
+</div>
+
+<div class="barwrap">
+  <div class="bar">
+    <button id="mute" aria-pressed="false">Mute</button>
+    <button id="session" title="La session comme script du simulateur, pour un rapport de bug">Copy session</button>
+    <button id="reset">Factory reset</button>
+    <span class="cpu" id="cpu"></span>
+  </div>
+  <div id="status">Off.</div>
+</div>
+
+<section id="source" aria-label="Sound source">
+  <b>SOURCE SONORE</b> — ce que le navigateur joue dans le port USB émulé (le trajet d'un DAW sur le FM-1 : trims, gates, mix, effets)
+  <div class="row">
+    <button id="src-beat" aria-pressed="false">beat dub intégré</button>
+    <button id="src-mic" aria-pressed="false">microphone (live)</button>
+    <button id="src-file" aria-pressed="false">fichier audio…</button>
+    <input type="file" id="file" accept="audio/*">
+  </div>
+  <div>Le micro repart dans les enceintes : baissez le volume ou <b>Mute</b> avant, ou portez un casque.</div>
+</section>
+
+<div id="help">
+  <b>OCT−</b> ouvre l'écran DUB (DUB · SIREN · DELAY · ISO) — <kbd>Z</kbd>/<kbd>X</kbd> au clavier, <kbd>espace</kbd> = PLAY, <kbd>R</kbd> = REC, <kbd>↑↓</kbd> = SELECT ·
+  <a href="../installer/" target="_blank" rel="noopener">installer sur un vrai FM-1</a> ·
+  <a href="https://github.com/altessproduction/DUB-BOX-FM1" target="_blank" rel="noopener">GitHub</a>
+</div>
+
+<section id="manual" aria-label="Le manuel DUB-BOX">
+
+<h2>DUB-BOX — LA STATION DUB SUR FM-1</h2>
+<p class="lead">Tout ce qui suit est le <b>vrai firmware</b> — le même que sur le FM-1, compilé en WebAssembly.
+DUB-BOX est la carte son USB et le récepteur Bluetooth du FM-1 (le routeur audio), avec les modules dub de
+sloop-DUB portés dessus : la sirène, le tape echo, le filtre DJ et l'isolateur sur leurs pages.
+<b>OCT−</b> ouvre l'écran DUB : quatre pages, <span class="kn">DUB · SIREN · DELAY · ISO</span>.
+<b>PLAY</b> rend le master muet — le drop. Les réglages survivent au rechargement de la page.</p>
+
+<div class="cards">
+<div class="card wide">
+<h3>LES QUATRE PAGES DUB — OCT− POUR ENTRER</h3>
+<ul>
+<li><b><span class="chip">DUB</span></b> — <span class="kn">K1</span> le filtre DJ (bipolaire : passe-bas à gauche, passe-haut à droite, <b>FLAT</b> au crantage central, les balayages glissent), <span class="kn">K2</span> le mix, <span class="kn">K3</span> le <i>throw</i> vers le tape echo. <kbd>SEL</kbd> change de module.</li>
+<li><b><span class="chip">SIREN</span></b> — <span class="kn">K1</span> la hauteur 220–1200 Hz, <span class="kn">K2</span> la vitesse 1–16 Hz, <span class="kn">K3</span> le niveau, <kbd>ALGO</kbd> le type de LFO (WAIL, HILO, RAMP, SWEEP, SPACE), <kbd>SEL</kbd> la forme (SQR, PLS, SAW, TRI, SIN). <kbd>REC</kbd> (ou <kbd>SEL</kbd> tenu) la fait sonner — depuis n'importe quel écran.</li>
+<li><b><span class="chip">DELAY</span></b> — le tape echo : <span class="kn">K1</span> le temps 40–740 ms, <span class="kn">K2</span> le feedback, <span class="kn">K3</span> le niveau, <kbd>ALGO</kbd> le ton. Le temps glisse comme une bande qui satellite, les têtes ondulent (wow 0,7 Hz, flutter 6,3 Hz), les répétitions passent dans l'amortissement et une saturation douce qui chauffe passage après passage.</li>
+<li><b><span class="chip">ISO</span></b> — quatre bandes <span class="kn">SUB 90 · BASS 420 · MIDS 2600 · TOPS</span> : <span class="kn">K1/K2/K3/ALGO</span> leurs gains −24…+12 dB, les touches mute du mixer les tuent ; les quatre ensemble, c'est le <i>total kill</i>. <kbd>SEL</kbd> relève tous les kills.</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>LE ROUTEUR DESSOUS — LE SON QUI TRAVERSE</h3>
+<ul>
+<li>Le beat du navigateur (ou votre fichier, ou le micro) entre par le <b>port USB émulé</b> : exactement le trajet d'un DAW sur le vrai FM-1 — trims, gates, mix, EQ, limiteur, master.</li>
+<li><kbd>GLO</kbd> ouvre le mixer : quatre tranches USB IN / BT IN / USB OUT / MASTER, mute et solo.</li>
+<li><kbd>FX</kbd> : l'EQ cinq bandes et le limiteur, avec leurs préréglages.</li>
+<li><kbd>EDIT</kbd> : les réglages (l'échantillonnage du master, les codecs Bluetooth, l'écran…). <kbd>SAVE</kbd> s'allume quand un brouillon attend.</li>
+<li><kbd>OCT+</kbd>/<kbd>OCT−</kbd> hors de l'écran DUB : le codec et les pages.</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>SOURCES, BLUETOOTH, MÉMOIRE</h3>
+<ul>
+<li><b>Le beat dub intégré</b> : un one-drop 74 BPM synthétisé par la page — la matière à dubber, sans rien installer.</li>
+<li><b>Le récepteur Bluetooth reste hors ligne dans l'émulateur</b> (pas de radio) : ses menus se parcourent, mais aucun téléphone ne vient y jouer. Sur le vrai FM-1, il reçoit SBC, AAC, aptX et aptX HD.</li>
+<li>Les réglages et presets sont gardés dans ce navigateur (objets sauvegardés et zone de données, comme le flash du FM-1 garde les siens). <b>Factory reset</b> oublie tout ; les boutons de la barre (image, MIDI, restart) viennent des parts de l'émulateur fm1-base.</li>
+<li><b>Copy session</b> copie ce que vous avez joué en script du simulateur — collez-le dans un rapport de bug : il rejoue votre session dans le simulateur hôte du dépôt.</li>
+</ul>
+</div>
+</div>
+
+<p class="src">Émulateur : le firmware DUB-BOX (GPL-3.0) compilé en WebAssembly par
+<a href="https://github.com/charlesvestal/fm1-base">fm1-base</a> (MPL-2.0, Charles Vestal) — plaquette et géométrie
+d'après l'émulateur <a href="https://altessproduction.github.io/sloop-dub-fm1/dub/">sloop-DUB</a> (GPL-3.0).
+Le son, l'écran et les menus sont le code du firmware, pas une ré-implémentation.</p>
+</section>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- the panel
+/* fm1-base's panel numbering (web/fm1panel.js): the buttons' matrix bits and
+   the encoders' roles, as plat reads them on the FM-1 */
+const BTN = { FX: 0, SEL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7,
+              ARP: 8, SEQ: 9, PLAY: 10, REC: 11, "OCT-": 12, "OCT+": 13 };
+const ENC = { SELECT: 0, ALGORITHM: 1, PRESETS: 2, KNOB1: 3, KNOB2: 4, KNOB3: 5, KNOB4: 6 };
+const NKEYS = 27;
+
+/* ---- geometry traced from the manual drawing (drawing units; after sloop's
+   reference_emu, GPL-3.0) ---- */
+const S = 1.25;
+const DEV = { w: 963, h: 588 };
+const ENCODERS = [                        // [label, fm1-base role, cx, cy, colour]
+    ['SELECT',    ENC.SELECT,    172, 100],
+    ['PRESETS',   ENC.PRESETS,    67, 203],
+    ['ALGORITHM', ENC.ALGORITHM, 170, 203],
+    ['KNOB1', ENC.KNOB1, 538, 100, 'k1'],
+    ['KNOB2', ENC.KNOB2, 647, 100, 'k2'],
+    ['KNOB3', ENC.KNOB3, 757, 100, 'k3'],
+    ['KNOB4', ENC.KNOB4, 866, 100, 'k4'],
+];
+const MASTER = { cx: 70, cy: 100 };
+const KNOB_D = 46;
+const SCREEN = { x: 241, y: 48, w: 226, h: 233 };
+const BTN_PANE = { x: 508, y: 168, w: 387, h: 135 };
+const BTN_SIZE = { w: 50, h: 46 };
+const BTN_GRID = {
+    cols: [550, 611, 672, 733, 793, 854],
+    rows: [
+        { y: 207, labels: [['FX', 'FX'], ['SEL', 'SEL'], ['ENV', 'ENV'], ['LFO', 'LFO'], ['EDIT', 'EDIT'], ['GLO', 'GLO']] },
+        { y: 268, labels: [['HOME', 'HOME'], ['SAVE', 'SAVE'], ['ARP', 'ARP'], ['SEQ', 'SEQ'], ['PLAY|STOP', 'PLAY'], ['REC', 'REC']] },
+    ],
+};
+const OCT_PANE = { x: 43, y: 258, w: 160, h: 45 };
+const OCT_BTNS = [['OCT-', 85], ['OCT+', 161]];
+const KEY_PANE = { x: 20, y: 340, w: 885, h: 228 };
+const WKEY = { y: 497, w: 44, h: 98, x0: 63, pitch: 54.53 };
+const BKEY = { y: 396.5, w: 38, h: 86,
+    xs: [92, 146, 201, 310, 365, 474, 529, 583, 692, 747, 856],
+    labels: ['OP1', 'OP2', 'OP3', 'OP4', 'OP5', 'OP6', 'PIT', 'GLO', 'MONO', 'POLY', ''] };
+const WHITE_IDS = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26];
+const BLACK_IDS = [1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25];
+
+// ------------------------------------------------------------------ state
+const STORE_KEY = "dub-box-emu-store";
+const $ = (id) => document.getElementById(id);
+let node = null, gain = null, ac = null, appPart = null;
+let btnMask = 0, keyMask = 0;
+const btnHeldBy = new Map(), keyHeldBy = new Map();
+let masterVal = 2800;
+const encVis = {};
+let masterVis = null;
+
+function send(m, transfer) { if (node) node.port.postMessage(m, transfer); }
+function setBtns() { send({ type: "buttons", mask: btnMask }); }
+function setKeys() { send({ type: "keys", mask: keyMask }); }
+function btnDown(b) { btnMask |= 1 << b; setBtns(); }
+function btnUp(b) { btnMask &= ~(1 << b); setBtns(); }
+function enc(role, n) { if (node && n) send({ type: "enc", role, n }); }
+
+// --------------------------------------------------------------- faceplate
+const device = $("device");
+device.style.width = DEV.w * S + 'px';
+device.style.height = DEV.h * S + 'px';
+const px = (u) => u * S + 'px';
+const btnEls = {}, noteEls = [];
+
+function el(cls, x, y, w, h) {
+    const d = document.createElement('div');
+    d.className = cls;
+    d.style.left = px(x);
+    d.style.top = px(y);
+    if (w) { d.style.width = px(w); d.style.height = px(h); }
+    device.appendChild(d);
+    return d;
+}
+function label(text, x, y) {
+    const d = el('lab', x, y);
+    d.textContent = text;
+    return d;
+}
+function knobDrag(cap, turn) {
+    cap.appendChild(Object.assign(document.createElement('div'), { className: 'grab' }));
+    let last = null, acc = 0, touch = false;
+    cap.addEventListener('wheel', (ev) => { ev.preventDefault(); turn(ev.deltaY < 0 ? 1 : -1); }, { passive: false });
+    cap.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault();
+        touch = ev.pointerType !== 'mouse';
+        last = deviceRotated ? ev.clientX : ev.clientY;
+        acc = 0;
+        try { cap.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
+    cap.addEventListener('pointermove', (ev) => {
+        if (last === null) return;
+        const cur = deviceRotated ? ev.clientX : ev.clientY;
+        acc += deviceRotated ? (cur - last) : (last - cur);
+        last = cur;
+        const step = touch ? 14 : 9;
+        const s = Math.trunc(acc / step);
+        if (s) { acc -= s * step; turn(s); }
+    });
+    const up = () => { last = null; };
+    cap.addEventListener('pointerup', up);
+    cap.addEventListener('pointercancel', up);
+}
+function buildKnobs() {
+    const KCOL = { k1: '#4f8fe8', k2: '#46b96b', k3: '#e0c23e', k4: '#e08a3e' };
+    for (const [name, role, cx, cy, col] of ENCODERS) {
+        label(name, cx, cy - 36);
+        const cap = el('cap', cx, cy, KNOB_D, KNOB_D);
+        if (col) cap.style.setProperty('--pcol', KCOL[col]);
+        let rot = 0;
+        const vis = (s) => { rot += s * 18; cap.style.setProperty('--rot', rot + 'deg'); };
+        encVis[role] = vis;
+        knobDrag(cap, (s) => { vis(s); enc(role, s); });
+    }
+    label('MASTER', MASTER.cx, MASTER.cy - 36);
+    const cap = el('cap', MASTER.cx, MASTER.cy, KNOB_D, KNOB_D);
+    cap.style.setProperty('--pcol', '#ff621a');
+    const show = () => cap.style.setProperty('--rot', (-135 + 270 * masterVal / 4096) + 'deg');
+    masterVis = show;
+    show();
+    knobDrag(cap, (s) => { masterVal = Math.max(0, Math.min(4096, masterVal + s * 96)); show(); send({ type: "master", value: masterVal }); });
+}
+/* a press lasts at least 50 ms: the firmware reads the buttons every 16 ms */
+const downAt = new Map();
+function holdBtn(id, b) { downAt.set(id, performance.now()); btnHeldBy.set(id, b); syncBtns(); }
+function holdKey(id, k) { downAt.set(id, performance.now()); keyHeldBy.set(id, k); syncKeys(); }
+function letGo(id) {
+    if (!btnHeldBy.has(id) && !keyHeldBy.has(id)) return;
+    const at = downAt.get(id), go = () => {
+        if (downAt.get(id) !== at) return;
+        downAt.delete(id);
+        if (btnHeldBy.delete(id)) syncBtns();
+        if (keyHeldBy.delete(id)) syncKeys();
+    };
+    const wait = 50 - (performance.now() - (at ?? 0));
+    if (wait > 0) setTimeout(go, wait); else go();
+}
+function syncBtns() {
+    let m = 0;
+    for (const b of btnHeldBy.values()) m |= 1 << b;
+    if (m !== btnMask) { btnMask = m; setBtns(); }
+    for (const b of Object.values(btnEls)) b.classList.toggle('down', !!(m & (1 << b.bit)));
+}
+function syncKeys() {
+    let m = 0;
+    for (const k of keyHeldBy.values()) m |= 1 << k;
+    if (m !== keyMask) { keyMask = m; setKeys(); }
+    for (const k of Object.values(noteEls)) if (k) k.classList.toggle('down', !!(m & (1 << k.bit)));
+}
+function buildButtons() {
+    el('pane', BTN_PANE.x + BTN_PANE.w / 2, BTN_PANE.y + BTN_PANE.h / 2, BTN_PANE.w, BTN_PANE.h);
+    const keyhint = { FX: '1', SEL: '2', ENV: '3', LFO: '4', EDIT: '5', GLO: '6',
+                      HOME: '7', SAVE: '8', ARP: '9', SEQ: '0', PLAY: '␣', REC: 'R', 'OCT-': 'Z', 'OCT+': 'X' };
+    const makeBtn = (print, fw, cx, cy, w, h) => {
+        const id = BTN[fw];
+        const b = el('btn', cx, cy, w, h);
+        b.bit = id;
+        b.innerHTML = print.split('|').join('<br>') + '<kbd>' + keyhint[fw] + '</kbd>';
+        const down = (ev) => {
+            ev.preventDefault();
+            try { b.setPointerCapture(ev.pointerId); } catch (e) {}
+            if (ev.shiftKey || ev.button === 2) {           // held down until pressed again
+                if (btnHeldBy.get('l' + id) === id) { btnHeldBy.delete('l' + id); syncBtns(); }
+                else { btnHeldBy.set('l' + id, id); syncBtns(); }
+                return;
+            }
+            holdBtn('p' + ev.pointerId, id);
+        };
+        b.addEventListener('contextmenu', (ev) => ev.preventDefault());
+        b.addEventListener('pointerdown', down);
+        const up = (ev) => letGo('p' + ev.pointerId);
+        b.addEventListener('pointerup', up);
+        b.addEventListener('pointercancel', up);
+        btnEls[id] = b;
+    };
+    for (const row of BTN_GRID.rows)
+        row.labels.forEach(([print, fw], i) => makeBtn(print, fw, BTN_GRID.cols[i], row.y, BTN_SIZE.w, BTN_SIZE.h));
+    el('pane', OCT_PANE.x + OCT_PANE.w / 2, OCT_PANE.y + OCT_PANE.h / 2, OCT_PANE.w, OCT_PANE.h);
+    for (const [name, cx] of OCT_BTNS)
+        makeBtn(name, name, cx, 280.5, 64, 33);
+}
+function buildKeyboard() {
+    el('pane', KEY_PANE.x + KEY_PANE.w / 2, KEY_PANE.y + KEY_PANE.h / 2, KEY_PANE.w, KEY_PANE.h);
+    const makeKey = (n, cls, cx, cy, w, h, print) => {
+        const k = el('pill ' + cls, cx, cy, w, h);
+        k.bit = n;
+        k.style.borderRadius = px(w / 2);
+        k.innerHTML = '<div class="slot"></div>' + (print ? '<i>' + print + '</i>' : '');
+        const down = (ev) => {
+            ev.preventDefault();
+            try { k.setPointerCapture(ev.pointerId); } catch (e) {}
+            holdKey('p' + ev.pointerId, n);
+        };
+        k.addEventListener('pointerdown', down);
+        const up = (ev) => letGo('p' + ev.pointerId);
+        k.addEventListener('pointerup', up);
+        k.addEventListener('pointercancel', up);
+        noteEls[n] = k;
+    };
+    WHITE_IDS.forEach((n, i) => makeKey(n, 'wk', WKEY.x0 + WKEY.pitch * i, WKEY.y, WKEY.w, WKEY.h, ''));
+    BLACK_IDS.forEach((n, i) => makeKey(n, 'bk', BKEY.xs[i], BKEY.y, BKEY.w, BKEY.h, BKEY.labels[i]));
+}
+function buildScreen() {
+    const bz = el('', SCREEN.x + SCREEN.w / 2, SCREEN.y + SCREEN.h / 2, SCREEN.w, SCREEN.h);
+    bz.id = 'bezel';
+    bz.style.transform = 'translate(-50%, -50%)';
+    const cv = document.createElement('canvas');
+    cv.id = 'screen';
+    cv.width = cv.height = 240;
+    const side = Math.min(SCREEN.w, SCREEN.h) - 16;
+    cv.style.width = cv.style.height = px(side);
+    bz.appendChild(cv);
+    return cv;
+}
+
+// ------------------------------------------------------- computer keyboard
+const KEYBTNS = { '1': 'FX', '2': 'SEL', '3': 'ENV', '4': 'LFO', '5': 'EDIT', '6': 'GLO',
+                  '7': 'HOME', '8': 'SAVE', '9': 'ARP', '0': 'SEQ', z: 'OCT-', x: 'OCT+',
+                  ' ': 'PLAY', r: 'REC', Escape: 'HOME' };
+const KEYENC = { ArrowUp: [ENC.SELECT, 1], ArrowDown: [ENC.SELECT, -1],
+                 ArrowRight: [ENC.ALGORITHM, 1], ArrowLeft: [ENC.ALGORITHM, -1],
+                 '[': [ENC.PRESETS, -1], ']': [ENC.PRESETS, 1] };
+const heldKeys = new Set();
+window.addEventListener('keydown', (ev) => {
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (ev.repeat) { if (KEYENC[ev.key]) { enc(...KEYENC[ev.key]); ev.preventDefault(); } return; }
+    const k = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+    if (k in KEYBTNS) {
+        heldKeys.add(k);
+        holdBtn('k' + k, BTN[KEYBTNS[k]]);
+        btnEls[BTN[KEYBTNS[k]]]?.classList.add('down');
+        ev.preventDefault();
+    } else if (KEYENC[ev.key]) { enc(...KEYENC[ev.key]); ev.preventDefault(); }
+});
+window.addEventListener('keyup', (ev) => {
+    const k = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+    if (heldKeys.delete(k)) { letGo('k' + k); btnEls[BTN[KEYBTNS[k]]]?.classList.remove('down'); }
+});
+window.addEventListener('blur', () => {
+    heldKeys.clear();
+    for (const id of [...btnHeldBy.keys()]) if (id[0] === 'k') btnHeldBy.delete(id);
+    for (const id of [...keyHeldBy.keys()]) if (id[0] === 'k') keyHeldBy.delete(id);
+    syncBtns(); syncKeys();
+});
+
+// ---------------------------------------------------------------- screen
+const screenCanvas = buildScreen();
+const c2d = screenCanvas.getContext('2d');
+const lcd = document.createElement('canvas');
+lcd.width = lcd.height = 240;
+const lctx = lcd.getContext('2d'), img = lctx.createImageData(240, 240);
+function blitScreen() {
+    c2d.imageSmoothingEnabled = false;
+    c2d.drawImage(lcd, 0, 0, screenCanvas.width, screenCanvas.height);
+}
+function fitScreen() {
+    const pxr = screenCanvas.getBoundingClientRect().width * (window.devicePixelRatio || 1);
+    const n = 240 * Math.max(1, Math.ceil(pxr / 240 - 0.001));
+    if (screenCanvas.width !== n) { screenCanvas.width = screenCanvas.height = n; blitScreen(); }
+}
+new ResizeObserver(fitScreen).observe(screenCanvas);
+function drawFB(fb) {
+    const d = img.data;
+    for (let k = 0; k < 240 * 240; k++) {
+        const v = fb[k], p = ((v >> 8) | (v << 8)) & 0xFFFF;      // the panel's RGB565, bytes swapped
+        d[4 * k] = (p >> 11 & 31) * 255 / 31 | 0;
+        d[4 * k + 1] = (p >> 5 & 63) * 255 / 63 | 0;
+        d[4 * k + 2] = (p & 31) * 255 / 31 | 0;
+        d[4 * k + 3] = 255;
+    }
+    lctx.putImageData(img, 0, 0);
+    blitScreen();
+}
+
+// ------------------------------------------------------------------ LEDs
+function applyLeds(litB, litK, dimB, dimK) {
+    for (let b = 0; b < 14; b++) {
+        const e = btnEls[b];
+        if (!e) continue;
+        e.classList.toggle('lit', !!(litB >> b & 1));
+        e.classList.toggle('glow', !(litB >> b & 1) && !!(dimB >> b & 1));
+    }
+    for (let n = 0; n < NKEYS; n++) {
+        const e = noteEls[n];
+        if (!e) continue;
+        e.classList.toggle('lit', !!(litK >> n & 1));
+        e.classList.toggle('glow', !(litK >> n & 1) && !!(dimK >> n & 1));
+    }
+}
+
+// ----------------------------------------------------------- local saves
+function loadStore() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}"), out = {};
+        for (const [o, b64] of Object.entries(raw)) out[o] = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+        return out;
+    } catch { return {}; }
+}
+function saveStore(store) {
+    try {
+        const raw = {};
+        for (const [o, u8] of Object.entries(store)) { let s = ""; for (const c of u8) s += String.fromCharCode(c); raw[o] = btoa(s); }
+        localStorage.setItem(STORE_KEY, JSON.stringify(raw));
+    } catch { /* storage unavailable: this session only */ }
+}
+
+// ------------------------------------------------------------ the session
+function sessionScript(m) {
+    const NAMES = ["FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ", "PLAY", "REC", "OCT-", "OCT+"];
+    const ENCN = ["SELECT", "ALGO", "PRESET", "K1", "K2", "K3", "K4"];
+    const out = ["# DUB-BOX emulator session, " + new Date().toISOString() + ", " + navigator.userAgent];
+    let t = 0;
+    for (const [at, kind, v] of m.log) {
+        if (at > t) { out.push(`wait ${at - t}`); t = at; }
+        if (kind === "b") {
+            for (let b = 0; b < 14; b++) if (v >> b & 1) out.push(`press ${NAMES[b]}`);
+        } else if (kind === "k") {
+            for (let k = 0; k < 27; k++) if (v >> k & 1) out.push(`key ${k} down`);
+        } else if (kind === "e") out.push(`spin ${ENCN[v[0]] || v[0]} ${v[1]}`);
+        else if (kind === "m") out.push(`master ${v}`);
+        else if (kind === "l") out.push(`# load ${v}%`);
+    }
+    if (m.now > t) out.push(`wait ${m.now - t}`);
+    const text = out.join("\n") + "\n";
+    const done = (how) => { $("session").textContent = how; setTimeout(() => { $("session").textContent = "Copy session"; }, 2500); };
+    navigator.clipboard.writeText(text).then(() => done("Copied"), () => {
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.rows = 8; ta.style.width = "100%";
+        $("session").after(ta); ta.select(); done("Select and copy below");
+    });
+}
+
+// ---------------------------------------------------------- the sound source
+/* what the browser plays into the emulated USB port: the built-in dub beat,
+   a microphone, or an audio file. The worklet carries it as the emulated
+   computer's USB playback (plat's usb_play path: trims, gates, the mix). */
+let srcNode = null, srcMicStream = null, srcKind = null, beatBuf = null, fileBuf = null, fileName = "";
+
+function sourceButtons() {
+    for (const [id, kind] of [["src-beat", "beat"], ["src-mic", "mic"], ["src-file", "file"]])
+        $(id).classList.toggle('on', srcKind === kind), $(id).setAttribute('aria-pressed', srcKind === kind ? "true" : "false");
+}
+async function stopSource() {
+    if (srcNode) { try { srcNode.stop ? srcNode.stop() : 0; } catch (e) {} try { srcNode.disconnect(); } catch (e) {} srcNode = null; }
+    if (srcMicStream) { for (const t of srcMicStream.getTracks()) t.stop(); srcMicStream = null; }
+    srcKind = null;
+    if (node) node.port.postMessage({ type: "uac", on: false });
+    sourceButtons();
+}
+async function startSource(kind, file) {
+    if (!node || !ac) return;
+    await stopSource();
+    try {
+        if (kind === "beat") {
+            if (!beatBuf) beatBuf = renderBeat(ac);
+            srcNode = ac.createBufferSource();
+            srcNode.buffer = beatBuf;
+            srcNode.loop = true;
+            srcNode.connect(node);
+            srcNode.start();
+        } else if (kind === "mic") {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+            srcMicStream = stream;
+            srcNode = ac.createMediaStreamSource(stream);
+            srcNode.connect(node);
+        } else if (kind === "file") {
+            if (file) { fileBuf = await ac.decodeAudioData(await file.arrayBuffer()); fileName = file.name; }
+            if (!fileBuf) return;
+            srcNode = ac.createBufferSource();
+            srcNode.buffer = fileBuf;
+            srcNode.loop = true;
+            srcNode.connect(node);
+            srcNode.start();
+        } else return;
+        srcKind = kind;
+        node.port.postMessage({ type: "uac", on: true });
+        status(`Source ${kind === "beat" ? "le beat dub" : kind === "mic" ? "le microphone" : "le fichier"} joue dans le port USB émulé.`);
+    } catch (err) {
+        status("Source refusée : " + (err && err.message || err));
+    }
+    sourceButtons();
+}
+function status(t) { $("status").textContent = t; }
+
+/* the built-in dub beat: a one-drop at 74 BPM, synthesised here — the matter
+   to dub over, without installing anything */
+function renderBeat(ac) {
+    const SR = 44100, BPM = 74, beat = 60 / BPM, bars = 2, len = Math.ceil(bars * 4 * beat * SR);
+    const buf = ac.createBuffer(2, len, SR);
+    const L = buf.getChannelData(0), R = buf.getChannelData(1);
+    const at = (b) => Math.round(b * beat * SR);              // beat position -> sample
+    const add = (b, s, g) => {                                 // stereo write with bounds
+        const i = at(b);
+        for (let k = 0; k < s.length; k++) {
+            const j = i + k;
+            if (j >= 0 && j < len) { L[j] += s[k] * g; R[j] += s[k] * g; }
+        }
+    };
+    const kick = () => {                                       // pitch-dropped sine, 0.35 s
+        const n = Math.round(0.35 * SR), s = new Float32Array(n);
+        let ph = 0;
+        for (let i = 0; i < n; i++) {
+            const t = i / SR, f = 45 + 95 * Math.exp(-t * 28);
+            ph += 2 * Math.PI * f / SR;
+            s[i] = Math.sin(ph) * Math.exp(-t * 9);
+        }
+        return s;
+    };
+    const snare = () => {                                      // noise burst + body, 0.18 s
+        const n = Math.round(0.18 * SR), s = new Float32Array(n);
+        let ph = 0, last = 0;
+        for (let i = 0; i < n; i++) {
+            const t = i / SR;
+            ph += 2 * Math.PI * 185 / SR;
+            const w = Math.random() * 2 - 1, hp = w - last; last = w;   // one-pole high-pass
+            s[i] = (hp * 0.7 + Math.sin(ph) * 0.5) * Math.exp(-t * 24);
+        }
+        return s;
+    };
+    const hat = () => {                                        // short bright noise, 45 ms
+        const n = Math.round(0.045 * SR), s = new Float32Array(n);
+        let last = 0;
+        for (let i = 0; i < n; i++) {
+            const t = i / SR, w = Math.random() * 2 - 1, hp = w - last; last = w;
+            s[i] = hp * Math.exp(-t * 90);
+        }
+        return s;
+    };
+    const bass = (f, dur, slide) => {                          // sub sine, glide to the next note
+        const n = Math.round(dur * SR), s = new Float32Array(n);
+        let ph = 0;
+        for (let i = 0; i < n; i++) {
+            const t = i / SR, k = Math.min(1, t / (dur * 0.3));
+            const ff = f + (slide ? (slide - f) * k : 0);
+            ph += 2 * Math.PI * ff / SR;
+            const env = Math.min(1, t * 60) * Math.exp(-Math.max(0, t - dur * 0.6) * 6);
+            s[i] = Math.sin(ph) * env * 0.9 + Math.sin(ph * 2) * env * 0.08;
+        }
+        return s;
+    };
+    const skank = (fs) => {                                    // the off-beat chord, 0.14 s
+        const n = Math.round(0.14 * SR), s = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            const t = i / SR, env = Math.min(1, t * 400) * Math.exp(-t * 26);
+            let v = 0;
+            for (const f of fs) v += Math.sin(2 * Math.PI * f * t) + Math.sin(2 * Math.PI * f * 1.003 * t) * 0.6;
+            s[i] = v * env * 0.16;
+        }
+        return s;
+    };
+    const F1 = 43.65, Ab1 = 51.91, Bb1 = 58.27, C2 = 65.41;
+    const CH = [174.6, 207.7, 261.6];                          // F3 Ab3 C4
+    for (const bar of [0, 4]) {
+        add(bar + 0, kick(), 0.95);                            // one drop: kick on 1, snare on 3
+        add(bar + 2, snare(), 0.6);
+        for (let h = 0.5; h < 4; h += 1) add(bar + h, hat(), h % 1 ? 0.34 : 0.2);
+        add(bar + 2.5, skank(CH), 1); add(bar + 4.5, skank(CH), 1);
+    }
+    add(0, bass(F1, 1.4), 1); add(2.5, bass(F1, 0.7, F1 * 1.5), 1); add(3.5, bass(Ab1, 0.9), 1);
+    add(4, bass(C2, 0.9), 1); add(5.0, bass(Bb1, 0.9), 1); add(6.0, bass(F1, 1.6, F1), 1);
+    let peak = 0;
+    for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(L[i]));
+    const g = peak > 0 ? 0.85 / peak : 1;
+    for (let i = 0; i < len; i++) { L[i] *= g; R[i] *= g; }
+    return buf;
+}
+$("src-beat").addEventListener('click', () => srcKind === "beat" ? stopSource() : startSource("beat"));
+$("src-mic").addEventListener('click', () => srcKind === "mic" ? stopSource() : startSource("mic"));
+$("src-file").addEventListener('click', () => $("file").click());
+$("file").addEventListener('change', (e) => { if (e.target.files[0]) startSource("file", e.target.files[0]); });
+
+// ------------------------------------------------------------------ parts
+function showAlert(t) { status(t); }
+
+// --------------------------------------------------------------- power on
+async function powerOn() {
+    $("power").remove();
+    status("Starting…");
+    try {
+        ac = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" });
+        const [wasm] = await Promise.all([fetch("app.wasm").then((r) => { if (!r.ok) throw new Error(`app.wasm: ${r.status}`); return r.arrayBuffer(); }),
+                                          ac.audioWorklet.addModule("app_worklet.js").catch(() => {})
+                                            .then(() => ac.audioWorklet.addModule("worklet.js"))]);
+        node = new AudioWorkletNode(ac, "fm1", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+        gain = ac.createGain();
+        gain.gain.value = $("mute").getAttribute("aria-pressed") === "true" ? 0 : 1;
+        node.connect(gain).connect(ac.destination);
+        const ready = new Promise((res) => {
+            node.port.onmessage = (e) => {
+                const m = e.data;
+                if (m.type === "ready") res();
+                else if (m.type === "frame") {
+                    if (m.fb) drawFB(m.fb);
+                    applyLeds(m.buttons, m.keys, m.dimButtons, m.dimKeys);
+                    if (m.load !== undefined) $("cpu").textContent = `${m.load}% de ce computer`;
+                    if (m.store) saveStore(m.store);
+                    window.emuLast = m;
+                } else if (m.type === "log") sessionScript(m);
+                else if (m.type === "app" && appPart && appPart.message) appPart.message(m);
+            };
+        });
+        appPart = await import("./app.js").catch(() => null);
+        if (appPart && appPart.attach) appPart.attach({ node, ac, status: showAlert });
+        node.port.postMessage({ type: "load", wasm, store: loadStore(), master: masterVal }, [wasm]);
+        await ready;
+        await ac.resume();
+        status("On — le firmware DUB-BOX tourne. Choisissez une source sonore, puis OCT− pour l'écran DUB.");
+        fitScreen();
+    } catch (err) {
+        node = null;
+        status("Could not start: " + (err && err.message || err) + " — Chrome, Edge, Firefox et Safari marchent.");
+    }
+}
+$("mute").addEventListener('click', () => {
+    const on = $("mute").getAttribute("aria-pressed") !== "true";
+    $("mute").setAttribute("aria-pressed", on ? "true" : "false");
+    if (gain) gain.gain.value = on ? 0 : 1;
+});
+document.getElementById('power').addEventListener('click', powerOn, { once: true });
+$("session").addEventListener('click', () => send({ type: "log" }));
+$("reset").addEventListener('click', () => {
+    if ($("reset").dataset.armed) {
+        try { localStorage.removeItem(STORE_KEY); } catch {}
+        location.reload();
+    } else {
+        $("reset").dataset.armed = "1";
+        $("reset").textContent = "Press again to forget everything";
+    }
+});
+
+// ------------------------------------------------------ fit small screens
+let deviceRotated = false;
+function safeInsets() {
+    const cs = getComputedStyle(document.documentElement);
+    const p = (n) => parseFloat(cs.getPropertyValue(n)) || 0;
+    return { t: p('--sat'), b: p('--sab'), l: p('--sal'), r: p('--sar') };
+}
+function fitDevice() {
+    const W = DEV.w * S, H = DEV.h * S;
+    const vv = window.visualViewport;
+    let vw = Math.max(vv ? vv.width : 0, window.innerWidth);
+    let vh = Math.max(vv ? vv.height : 0, window.innerHeight);
+    const standalone = window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches;
+    if (standalone && window.screen) {
+        const big = Math.max(screen.width, screen.height), small = Math.min(screen.width, screen.height);
+        if (vh >= vw) { vw = Math.max(vw, small); vh = Math.max(vh, big); }
+        else { vw = Math.max(vw, big); vh = Math.max(vh, small); }
+    }
+    const si = safeInsets();
+    const ax = si.l, ay = si.t;
+    const aw = vw - si.l - si.r, ah = vh - si.t;
+    const sFlat = Math.min(aw / W, ah / H);
+    const sRot = Math.min(aw / H, ah / W);
+    if (sFlat >= 1) {
+        document.body.classList.remove('compact');
+        device.style.transform = '';
+        device.style.left = device.style.top = '';
+        deviceRotated = false;
+        document.body.classList.remove('rotated');
+        return;
+    }
+    document.body.classList.add('compact');
+    device.style.left = (ax + aw / 2) + 'px';
+    device.style.top = (ay + ah / 2) + 'px';
+    const rotate = ah > aw && sRot > sFlat;
+    if (rotate) device.style.transform = `translate(-50%, -50%) rotate(90deg) scale(${ah / W}, ${aw / H})`;
+    else device.style.transform = `translate(-50%, -50%) scale(${aw / W}, ${ah / H})`;
+    deviceRotated = rotate;
+    document.body.classList.toggle('rotated', rotate);
+}
+window.addEventListener('resize', fitDevice);
+window.addEventListener('orientationchange', () => setTimeout(fitDevice, 100));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', fitDevice);
+window.addEventListener('pageshow', () => setTimeout(fitDevice, 50));
+for (const t of [150, 500, 1200, 2500]) setTimeout(fitDevice, t);
+
+// ---------------------------------------------------- fullscreen toggle
+(function () {
+    const fsBtn = $("fs"), tip = $("fstip"), root = document.documentElement;
+    const req = root.requestFullscreen || root.webkitRequestFullscreen;
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    const current = () => document.fullscreenElement || document.webkitFullscreenElement;
+    const standalone = window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches;
+    if (standalone) return;
+    document.body.classList.add('fs-ok');
+    const sync = () => { fsBtn.innerHTML = current() ? '&#x2715;' : '&#x26F6;'; setTimeout(fitDevice, 50); };
+    fsBtn.addEventListener('click', () => {
+        if (req) { if (current()) exit.call(document); else req.call(root).catch(() => {}); }
+        else tip.classList.add('show');
+    });
+    tip.addEventListener('click', () => tip.classList.remove('show'));
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+})();
+
+buildKnobs();
+buildButtons();
+buildKeyboard();
+fitDevice();
+</script>
 </body>
 </html>

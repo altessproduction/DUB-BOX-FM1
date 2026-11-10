@@ -46,7 +46,7 @@ DUB-BOX runs on the [m-bootloader](https://github.com/jvitkauskas/m-bootloader)
 
 1. Back your unit up first — a settings export is not a firmware backup
    ([MvaveFM1Unbricker](https://github.com/Quixotic7/MvaveFM1Unbricker)).
-2. Download [`dub-box-1.0.0.fwsc`](docs/firmware/dub-box-1.0.0.fwsc) (or the
+2. Download [`dub-box-1.0.1.fwsc`](docs/firmware/dub-box-1.0.1.fwsc) (or the
    release asset) and check its SHA-256 (`docs/firmware/SHA256SUMS`).
 3. Turn the FM-1 off, on while holding **REC**.
 4. Flash with M-Flasher — bootloader replacement **disabled**, settings erase
@@ -56,7 +56,13 @@ DUB-BOX runs on the [m-bootloader](https://github.com/jvitkauskas/m-bootloader)
 The web install page walks through it with the checksums:
 **[docs/index.html → installer](https://altessproduction.github.io/DUB-BOX-FM1/installer/)**
 — and the **[web emulator](https://altessproduction.github.io/DUB-BOX-FM1/dub/)**
-runs the same DSP in the browser (built-in dub beat, microphone or file).
+runs the **real firmware** in the browser: `app.wasm` is the whole DUB-BOX app
+(UI, menus, sound, saved settings) compiled to WebAssembly by fm1-base's
+`tools/build.py --web` — not a re-implementation. The page's faceplate is the
+FM-1 (after sloop-DUB's emulator); the sound source (built-in dub beat,
+microphone, audio file) enters through the emulated USB port, the same path a
+DAW takes on the device. Browser-only limits: the Bluetooth receiver stays
+offline (no radio) and the settings are kept in the browser's storage.
 
 # Build
 

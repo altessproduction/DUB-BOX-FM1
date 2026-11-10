@@ -1,3 +1,30 @@
+# DUB-BOX 1.0.1
+
+Two drawing fixes on the DUB screen (they hit the device the same way they hit
+the browser), and the web emulator now runs the real firmware:
+
+- **The DUB pages drew nothing** (the status bar only): `dub_ui.h`'s header
+  band loop subtracted the band from its own y (the platform's `cv_` band
+  pattern takes the screen's y and lets `cv_oy` map it), and the value rows
+  drew after the loop with the canvas still 16 rows tall — everything landed
+  outside it. The page now draws the whole DUB screen inside the band loop,
+  the way `fx/gui.h` does.
+- **The values with a unit lost their digits** ("HZ", "MS", "DB" with no
+  number): `dub_ui_num`/`dub_ui_db` return the buffer's start, so
+  `dub_ui_put(dub_ui_num(..), " HZ")` overwrote the number with the unit.
+  They now return the write cursor (as `dub_ui_put` always has), and
+  `dub_ui_val`/`dub_ui_val_db` write the number and the unit in one call.
+- **The browser emulator runs the firmware itself**: `tools/build.py --web`
+  (fm1-base's target, ported) compiles the whole app to `app.wasm` — screen,
+  menus, sound, saved settings are the firmware's own code, with the FM-1
+  faceplate after sloop-DUB's emulator. The page's source (built-in dub beat,
+  microphone, audio file) plays through the emulated USB port via a new
+  `FM1B_EMU_UAC` live path in `host/plat_host.c`'s `usb_play_take`. Emulator
+  checks in `src/tests/emu_test_dubbox.mjs`; host suites pass (all current
+  project suites, dub modules included).
+
+Package identity `FM-1_235`, `dub-box-1.0.1.fwsc` (613 178 B).
+
 # DUB-BOX 1.0.0
 
 The first release. The FM-1 audio router gains a dub station on top:

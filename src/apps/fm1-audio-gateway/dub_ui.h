@@ -67,7 +67,15 @@ static char *dub_ui_db(char text[12], int db)      /* "-12" .. "+12", 0 plain */
     if (v >= 10) { text[n++] = (char)('0' + v / 10); text[n++] = (char)('0' + v % 10); }
     else text[n++] = (char)('0' + v);
     text[n] = 0;
-    return text;
+    return text + n;
+}
+static char *dub_ui_val_db(char *t, int db, const char *s)
+{
+    t = dub_ui_db(t, db);
+    while (*s)
+        *t++ = *s++;
+    *t = 0;
+    return t;
 }
 static char *dub_ui_hz(char text[12], uint32_t hz)  /* "400" or "3.8K", sloop's way */
 {
@@ -90,13 +98,21 @@ static char *dub_ui_hz(char text[12], uint32_t hz)  /* "400" or "3.8K", sloop's 
     }
     return text;
 }
-static char *dub_ui_num(char text[12], unsigned v)
+static char *dub_ui_num(char text[12], unsigned v)   /* the number written, the cursor back (dub_ui_put's) */
 {
     unsigned n = 0, k = 0, d[5];
     do { d[k++] = v % 10u; v /= 10u; } while (v);
     while (k) text[n++] = (char)('0' + d[--k]);
     text[n] = 0;
-    return text;
+    return text + n;
+}
+static char *dub_ui_val(char *t, unsigned v, const char *s)   /* the number, then the unit after it */
+{
+    t = dub_ui_num(t, v);
+    while (*s)
+        *t++ = *s++;
+    *t = 0;
+    return t;
 }
 static char *dub_ui_put(char *t, const char *s)   /* append; no libc strcat here */
 {
@@ -110,71 +126,75 @@ static void gateway_dub_draw(void)
 {
     char text[12];
     unsigned page = gateway_dub_page;
-    for (unsigned band = 18; band < 40; band += APP_CANVAS_PX / 240u) {
-        unsigned h = 40 - band; if (h > APP_CANVAS_PX / 240u) h = APP_CANVAS_PX / 240u;
+    /* One band a pass, the page's whole drawing inside (fx/gui.h's pattern):
+     * every cv_ call takes the screen's y, cv_oy maps it into the band, and
+     * the canvas clip drops what other bands hold. The canvas is 16 rows —
+     * drawing the rows outside a band's strip drew nothing at all. */
+    for (unsigned band = 18; band < 240; band += APP_CANVAS_PX / 240u) {
+        unsigned h = 240 - band; if (h > APP_CANVAS_PX / 240u) h = APP_CANVAS_PX / 240u;
         cv_begin(240, h, C_BLACK); cv_oy = -(int)band;
-        cv_text(6, 22 - (int)band, &FONT_XS, gateway_dub_page_names[page], RGB(96, 200, 255));
+        cv_text(6, 22, &FONT_XS, gateway_dub_page_names[page], RGB(96, 200, 255));
         const char *state = "";
         if (page == DUB_PG_MAIN) state = dub_on ? "ON" : "OFF";
         if (page == DUB_PG_SIREN) state = gateway_dub_sir_held ? "SOUND" : "";
         if (page == DUB_PG_DELAY) state = dub_tape_lvl ? "" : "MUTED";
         if (*state)
-            cv_text(234 - text_w(&FONT_XS, state), 22 - (int)band, &FONT_XS, state,
+            cv_text(234 - text_w(&FONT_XS, state), 22, &FONT_XS, state,
                 (page == DUB_PG_MAIN && !dub_on) || (page == DUB_PG_DELAY && !dub_tape_lvl) ? RGB(255, 90, 60) : RGB(40, 220, 90));
-        cv_rect(0, 39 - (int)band, 240, 1, RGB(28, 31, 35));
-        cv_oy = 0; cv_blit(0, band);
-    }
-    if (page == DUB_PG_MAIN) {
-        int32_t v = dub_filter_get();
-        if (v == 64) {
-            dub_ui_put(text, "FLAT");
-        } else {
-            text[0] = v < 64 ? 'L' : 'H'; text[1] = 'P'; text[2] = ' ';
-            dub_ui_hz(text + 3, dub_filter_hz(v));
-        }
-        dub_ui_row(0, "K1 FILTER", text, v == 64 ? C_GRAY : RGB(255, 212, 40),
-                   v == 64 ? 0u : (unsigned)(v < 64 ? 64 - v : v - 64), 64u);
-        dub_ui_num(text, dub_isolator.mix);
-        dub_ui_row(1, "K2 MIX", text, C_WHITE, dub_isolator.mix, 127u);
-        if (dub_tape_send) dub_ui_num(text, dub_tape_send); else dub_ui_put(text, "DRY");
-        dub_ui_row(2, "K3 SEND", text, dub_tape_send ? RGB(75, 210, 150) : C_GRAY, dub_tape_send, 127u);
-        cv_text(6, 218, &FONT_XS, "SEL ON/OFF", C_GRAY);
-    } else if (page == DUB_PG_SIREN) {
-        dub_ui_put(dub_ui_num(text, dub_siren.freq_hz), " HZ");
-        dub_ui_row(0, "K1 PITCH", text, RGB(255, 140, 25), dub_siren.freq_hz - 220u, 980u);
-        dub_ui_put(dub_ui_num(text, dub_siren_rate_hz(dub_siren.rate)), " HZ");
-        dub_ui_row(1, "K2 RATE", text, RGB(255, 140, 25), dub_siren_rate_hz(dub_siren.rate) - 1u, 15u);
-        dub_ui_num(text, gateway_dub_sir_lvl);
-        dub_ui_row(2, "K3 LEVEL", text, gateway_dub_sir_lvl ? RGB(255, 140, 25) : C_GRAY,
-                   gateway_dub_sir_lvl, 127u);
-        cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
-        cv_text(90, 168, &FONT_L, DUB_SIR_TYPE_NAMES[dub_siren.type], C_WHITE);
-        cv_text(6, 218, &FONT_XS, "SEL WAVE   REC SOUNDS", C_GRAY);
-    } else if (page == DUB_PG_DELAY) {
-        dub_ui_put(dub_ui_num(text, dub_tape_ms), " MS");
-        dub_ui_row(0, "K1 TIME", text, RGB(75, 155, 255), dub_tape_ms - 40u, DUB_TAPE_MS_MAX - 40u);
-        dub_ui_num(text, dub_tape_fb);
-        dub_ui_row(1, "K2 FEEDBK", text, C_WHITE, dub_tape_fb, 127u);
-        dub_ui_num(text, dub_tape_lvl);
-        dub_ui_row(2, "K3 LEVEL", text, dub_tape_lvl ? RGB(75, 155, 255) : RGB(255, 90, 60),
-                   dub_tape_lvl, 127u);
-        cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
-        dub_ui_num(text, dub_tape_tone);
-        cv_text(90, 168, &FONT_L, text, C_WHITE);
-        cv_text(6, 218, &FONT_XS, "HOME BACK", C_GRAY);
-    } else {
-        static const char *const band_names[DUB_BANDS] = {"K1 SUB", "K2 BASS", "K3 MIDS", "A4 TOPS"};
-        for (unsigned b = 0; b < DUB_BANDS; b++) {
-            const dub_band_param_t *p = &dub_isolator.p[b];
-            if (p->mute) {
-                dub_ui_row(b, band_names[b], "KILL", RGB(255, 48, 48), 0, 0);
+        cv_rect(0, 39, 240, 1, RGB(28, 31, 35));
+        if (page == DUB_PG_MAIN) {
+            int32_t v = dub_filter_get();
+            if (v == 64) {
+                dub_ui_put(text, "FLAT");
             } else {
-                dub_ui_put(dub_ui_db(text, p->gain_db), " DB");
-                dub_ui_row(b, band_names[b], text, p->gain_db ? C_WHITE : C_GRAY,
-                           (unsigned)(p->gain_db + 24), 36u);
+                text[0] = v < 64 ? 'L' : 'H'; text[1] = 'P'; text[2] = ' ';
+                dub_ui_hz(text + 3, dub_filter_hz(v));
             }
+            dub_ui_row(0, "K1 FILTER", text, v == 64 ? C_GRAY : RGB(255, 212, 40),
+                       v == 64 ? 0u : (unsigned)(v < 64 ? 64 - v : v - 64), 64u);
+            dub_ui_num(text, dub_isolator.mix);
+            dub_ui_row(1, "K2 MIX", text, C_WHITE, dub_isolator.mix, 127u);
+            if (dub_tape_send) dub_ui_num(text, dub_tape_send); else dub_ui_put(text, "DRY");
+            dub_ui_row(2, "K3 SEND", text, dub_tape_send ? RGB(75, 210, 150) : C_GRAY, dub_tape_send, 127u);
+            cv_text(6, 218, &FONT_XS, "SEL ON/OFF", C_GRAY);
+        } else if (page == DUB_PG_SIREN) {
+            dub_ui_val(text, dub_siren.freq_hz, " HZ");
+            dub_ui_row(0, "K1 PITCH", text, RGB(255, 140, 25), dub_siren.freq_hz - 220u, 980u);
+            dub_ui_val(text, dub_siren_rate_hz(dub_siren.rate), " HZ");
+            dub_ui_row(1, "K2 RATE", text, RGB(255, 140, 25), dub_siren_rate_hz(dub_siren.rate) - 1u, 15u);
+            dub_ui_num(text, gateway_dub_sir_lvl);
+            dub_ui_row(2, "K3 LEVEL", text, gateway_dub_sir_lvl ? RGB(255, 140, 25) : C_GRAY,
+                       gateway_dub_sir_lvl, 127u);
+            cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
+            cv_text(90, 168, &FONT_L, DUB_SIR_TYPE_NAMES[dub_siren.type], C_WHITE);
+            cv_text(6, 218, &FONT_XS, "SEL WAVE   REC SOUNDS", C_GRAY);
+        } else if (page == DUB_PG_DELAY) {
+            dub_ui_val(text, dub_tape_ms, " MS");
+            dub_ui_row(0, "K1 TIME", text, RGB(75, 155, 255), dub_tape_ms - 40u, DUB_TAPE_MS_MAX - 40u);
+            dub_ui_num(text, dub_tape_fb);
+            dub_ui_row(1, "K2 FEEDBK", text, C_WHITE, dub_tape_fb, 127u);
+            dub_ui_num(text, dub_tape_lvl);
+            dub_ui_row(2, "K3 LEVEL", text, dub_tape_lvl ? RGB(75, 155, 255) : RGB(255, 90, 60),
+                       dub_tape_lvl, 127u);
+            cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
+            dub_ui_num(text, dub_tape_tone);
+            cv_text(90, 168, &FONT_L, text, C_WHITE);
+            cv_text(6, 218, &FONT_XS, "HOME BACK", C_GRAY);
+        } else {
+            static const char *const band_names[DUB_BANDS] = {"K1 SUB", "K2 BASS", "K3 MIDS", "A4 TOPS"};
+            for (unsigned b = 0; b < DUB_BANDS; b++) {
+                const dub_band_param_t *p = &dub_isolator.p[b];
+                if (p->mute) {
+                    dub_ui_row(b, band_names[b], "KILL", RGB(255, 48, 48), 0, 0);
+                } else {
+                    dub_ui_val_db(text, p->gain_db, " DB");
+                    dub_ui_row(b, band_names[b], text, p->gain_db ? C_WHITE : C_GRAY,
+                               (unsigned)(p->gain_db + 24), 36u);
+                }
+            }
+            cv_text(6, 218, &FONT_XS, "KEYS KILL   SEL LIFTS", C_GRAY);
         }
-        cv_text(6, 218, &FONT_XS, "KEYS KILL   SEL LIFTS", C_GRAY);
+        cv_oy = 0; cv_blit(0, band);
     }
 }
 /* the page's knobs: enc is EN_*, delta the detents */

@@ -100,6 +100,9 @@ words = "words.tsv"
 licence = "GPL-3.0-only"
 tagline = "USB/BT audio router with dub siren, tape echo, DJ filter and isolator"
 credits = "Built on fm1-audio-router (MPL-2.0, by MAX RAVE; fm1-base and felucca-bsp by Charles Vestal and Leo Kuroshita). The dub modules are ported from sloop-DUB (GPL-3.0-only, altessproduction)."
+# The browser emulator's parts (tools/build.py --web): the data area kept in
+# IndexedDB, Web MIDI, restart/update mode, the whole saved state as a file.
+emu = ["data", "midi", "reboot", "image"]
 
 # Closed callback sets, audited for the SRAM runtime (all loaded executable
 # sections are independently required to reside in SRAM by the ELF checker).

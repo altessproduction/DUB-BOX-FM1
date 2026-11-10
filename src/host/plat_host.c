@@ -1589,10 +1589,24 @@ static uint32_t usb_play_n, usb_play_at;
 #endif
 static uint8_t usb_rec_now;                         /* this render's: the computer records (plat_usb_audio_rec) */
 int plat_usb_audio_rec(void) { return FM1B_UAC && usb_rec_now && !usbh_port(); }   /* (a USB host: no computer) */
+#ifdef FM1B_EMU_UAC
+int web_uac_take(int32_t *lr, uint32_t n);      /* web/emu/emu_web.c: the browser's live source (the
+                                                 * emulator's USB playback), always filling, 1 while a
+                                                 * source is picked; it also counts usb_play_frames */
+#endif
 /* the computer's next n frames at unity (24-bit), silence past its end; 1 while there are some */
 static int usb_play_take(int32_t *lr, uint32_t n)
 {
-    uint32_t i, got = FM1B_UAC_OUT && usb_play_buf && usb_play_at < usb_play_n && !usbh_port();
+    uint32_t i;
+#ifdef FM1B_EMU_UAC
+    if (web_uac_take(lr, n)) {
+#ifdef APP_USB_INPUT_METER
+        usb_input_meter_samples(lr, n);
+#endif
+        return 1;
+    }
+#endif
+    uint32_t got = FM1B_UAC_OUT && usb_play_buf && usb_play_at < usb_play_n && !usbh_port();
     for (i = 0; i < n; i++) {
         int ok = got && usb_play_at < usb_play_n;
         lr[2u * i] = ok ? usb_play_buf[2u * usb_play_at] : 0;

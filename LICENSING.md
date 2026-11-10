@@ -27,6 +27,18 @@ With Secondary Licenses" notice). `fm1.toml` declares `licence = "GPL-3.0-only"`
 DUB-BOX is a fork of **fm1-audio-router v0.2.0** (MPL-2.0, MAX RAVE — see CREDITS) on
 fm1-base; upstream pins and notices below are retained unchanged.
 
+The browser emulator (`docs/dub/`) is built by fm1-base's `tools/build.py --web`
+from three layers: the firmware itself as `app.wasm` (the GPL-3.0-only app above,
+compiled to WebAssembly — Emscripten's minimal runtime is compiled in), the
+emulator plumbing from fm1-base's `web/emu/` and `src/web/` copies
+(`emu_web.c`, the AudioWorklet `worklet.js`, the parts under `parts/` —
+**MPL-2.0**, Copyright (C) 2026 Charles Vestal and Henri David, kept under their
+notices), and the page's FM-1 faceplate (`src/apps/fm1-audio-gateway/web/emu/`) —
+**GPL-3.0-only**, Copyright (C) 2026 altessproduction, after the faceplate of
+[sloop-DUB](https://github.com/altessproduction/sloop-dub-fm1)'s emulator
+(geometry traced from the FM-1 user manual). The combined emulator page is
+distributed **GPL-3.0-only** as a whole.
+
 **fm1-base is MPL-2.0** (full text in `LICENSE`), file by file: every source file carries an
 `SPDX-License-Identifier: MPL-2.0` header. If you change one of these files and distribute it, publish your change to
 that file under MPL-2.0. Your own files, such as an app built on fm1-base, may use any licence, closed ones included.
