@@ -1,0 +1,82 @@
+<h1 align="center">DUB-BOX</h1>
+
+<p align="center">
+  A dub station firmware for the M-VAVE FM-1 — the USB/BT audio router with the
+  siren, the tape echo, the DJ filter and the isolator on their own pages
+</p>
+
+<p align="center">
+  <img src="assets/github/dubbox.png" width="240" height="240" alt="DUB-BOX">
+</p>
+
+<p align="center">
+  <a href="https://github.com/altessproduction/DUB-BOX-FM1/actions/workflows/firmware.yml"><img src="https://github.com/altessproduction/DUB-BOX-FM1/actions/workflows/firmware.yml/badge.svg" alt="Firmware build status"></a>
+</p>
+
+# What it is
+
+DUB-BOX is [fm1-audio-router](https://github.com/maxravedj/fm1-audio-router) —
+the FM-1's 2-in/2-out USB sound card and Bluetooth receiver — with the dub
+modules of [sloop-DUB](https://github.com/altessproduction/sloop-dub-fm1)
+ported on top. No sequencer, no synths: the dub tools, over whatever you feed
+it — your DAW over USB, a phone over Bluetooth, a mixer, a record player.
+
+Press **OCT−** and the DUB screen takes over the display, four pages:
+
+| Page | What it does |
+| --- | --- |
+| **DUB** | K1 the DJ filter (bipolar: lowpass left, highpass right, FLAT at the center detent, sweeps glide), K2 the mix, K3 the throw into the tape echo. SEL switches the module. |
+| **SIREN** | K1 pitch 220–1200 Hz, K2 rate 1–16 Hz, K3 level, ALGO the LFO type (WAIL, HILO, RAMP, SWEEP, SPACE), SEL the wave (SQR, PLS, SAW, TRI, SIN). **REC** (or SEL held) sounds it — from any screen. |
+| **DELAY** | The tape echo: K1 time 40–740 ms, K2 feedback, K3 level, ALGO tone. The time glides like a tape's sag, the head wanders (wow 0.7 Hz, flutter 6.3 Hz), the repeats pass the damping and a soft clip, warming pass by pass. |
+| **ISO** | Four bands — SUB 90, BASS 420, MIDS 2600, TOPS — K1/K2/K3/ALGO their gains −24…+12 dB, the mixer's mute keys kill them; all four at once is the total kill. SEL lifts every kill. |
+
+**PLAY** mutes the master — the drop. Everything persists across boots
+(settings v17), and the dub chain rests bit-transparent when off.
+
+Under it, the router runs whole: USB audio in/out (UAC1, 44.1 kHz, asynchronous
+feedback), Bluetooth receiver with SBC, AAC, aptX and aptX HD on its own
+clean-room stack (no vendor blobs), mixer with trims/mutes/solos, five-band EQ
+and peak limiter, meters, waveforms and a 40-band spectrum.
+
+# Install
+
+DUB-BOX runs on the [m-bootloader](https://github.com/jvitkauskas/m-bootloader)
+(community bootloader, installed once with
+[M-Flasher](https://github.com/jvitkauskas/m-flasher)):
+
+1. Back your unit up first — a settings export is not a firmware backup
+   ([MvaveFM1Unbricker](https://github.com/Quixotic7/MvaveFM1Unbricker)).
+2. Download [`dub-box-1.0.0.fwsc`](docs/firmware/dub-box-1.0.0.fwsc) (or the
+   release asset) and check its SHA-256 (`docs/firmware/SHA256SUMS`).
+3. Turn the FM-1 off, on while holding **REC**.
+4. Flash with M-Flasher — bootloader replacement **disabled**, settings erase
+   **unchecked**.
+5. Press **OCT−** and dub.
+
+The web install page walks through it with the checksums:
+**[docs/index.html → installer](https://altessproduction.github.io/DUB-BOX-FM1/installer/)**
+— and the **[web emulator](https://altessproduction.github.io/DUB-BOX-FM1/dub/)**
+runs the same DSP in the browser (built-in dub beat, microphone or file).
+
+# Build
+
+```sh
+python src/scripts/setup_build.py
+python src/scripts/build_gateway.py
+python src/scripts/package_gateway.py
+```
+
+`dist/dub-box.fwsc` is refreshed after every successful target build. Host
+tests: `python src/scripts/build_gateway.py --host && python src/scripts/test_gateway.py`
+— 445 checks, the dub modules included (`dub_module_test`). See
+[docs/BUILD.md](docs/BUILD.md) for the whole recipe and the release flow.
+The release identity is fixed: **FM-1_235** (sloop-DUB's own-identity scheme —
+no version-derived FM-1_9XY collisions on the firmware hub).
+
+# Licensing
+
+The router platform is MPL-2.0 (MAX RAVE); the dub modules and the DUB screen
+are GPL-3.0-only, ported from sloop-DUB. The combined firmware is distributed
+GPL-3.0-only — see [LICENSING.md](LICENSING.md), [CREDITS.md](CREDITS.md) and
+[UPSTREAM.md](docs/UPSTREAM.md). M-VAVE and FM-1 are trademarks of their
+respective owners; DUB-BOX is not affiliated with them.

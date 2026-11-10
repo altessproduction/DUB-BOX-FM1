@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# DUB-BOX words for the screen reader. No public dictionary is hosted yet.
+# url: https://example.invalid/dub-box/words/
+DUBBOX	DUB box
+DUB	the dub module
+SIREN	siren
+DELAY	the tape echo delay
+ISOLATOR	the isolator
+USB AUDIO	USB audio
+MASTER KNOB	master volume knob

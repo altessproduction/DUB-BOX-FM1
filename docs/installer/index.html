@@ -1,0 +1,88 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DUB-BOX · install on the FM-1</title>
+<style>
+  :root { --bg:#000; --fg:#f2f2f2; --dim:#8a8a92; --tile:#141417; --line:#26262c;
+          --green:#1ecc70; --orange:#ff621a; --red:#ff2c34; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.6 "Helvetica Neue", -apple-system, BlinkMacSystemFont, Arial, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 60px; }
+  .top { display:flex; align-items:center; gap:16px; }
+  .top img { height: 60px; }
+  .top .links { margin-left:auto; font-size: 13px; }
+  .top a { color: var(--dim); text-decoration: none; margin-left: 14px; }
+  h1 { font-size: 13px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin: 26px 0 8px; }
+  .lead { font-size: 19px; line-height: 1.4; margin: 0 0 20px; }
+  ol { padding-left: 22px; }
+  li { margin: 10px 0; }
+  code { background: var(--tile); padding: 2px 7px; font: 13px monospace; }
+  .warn { border-left: 3px solid var(--red); padding: 8px 14px; background: var(--tile); }
+  .ok { color: var(--green); font-weight: 600; }
+  .small { color: var(--dim); font-size: 12.5px; }
+  a { color: inherit; }
+  .btns { display:flex; gap: 10px; flex-wrap:wrap; margin: 20px 0; }
+  .btns a { font: 600 14px/1 inherit; color: #000; background: var(--orange); text-decoration: none;
+            padding: 14px 18px; letter-spacing: .06em; }
+  .btns a.ghost { background: var(--tile); color: var(--fg); border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <img src="../dubbox-logo.png" alt="DUB-BOX">
+    <div class="links"><a href="../dub/">emulator</a><a href="https://github.com/altessproduction/DUB-BOX-FM1" target="_blank" rel="noopener">GitHub</a></div>
+  </div>
+
+  <h1>Firmware for the M-VAVE FM-1</h1>
+  <p class="lead">DUB-BOX: the FM-1 as a dub station — USB audio interface and Bluetooth receiver, with the siren, the tape echo, the DJ filter and the four-band isolator on their own pages.</p>
+
+  <h1>What you need</h1>
+  <p>DUB-BOX is built on the <em>fm1-audio-router</em> platform, which runs on the
+     <strong>m-bootloader</strong> (a community bootloader for the FM-1, by jvitkauskas).
+     If your FM-1 still runs the stock M-VAVE firmware (or SLOOP), install the m-bootloader
+     once with <a href="https://github.com/jvitkauskas/m-flasher" target="_blank" rel="noopener">M-Flasher</a>,
+     then every DUB-BOX update is an ordinary firmware write.</p>
+
+  <div class="warn"><p><strong>Before any write:</strong> keep a verified full-flash backup and a working
+     recovery route for your own unit — a settings export is not a firmware backup. The
+     <a href="https://github.com/Quixotic7/MvaveFM1Unbricker" target="_blank" rel="noopener">MvaveFM1Unbricker</a>
+     project provides backup/recovery tooling. Never erase the whole chip.</p></div>
+
+  <h1>Install (M-Flasher)</h1>
+  <ol>
+    <li>Download <code><span class="ok">dub-box-1.0.0.fwsc</span></code> —
+        <a href="../firmware/dub-box-1.0.0.fwsc" download>from this site</a> or from the
+        <a href="https://github.com/altessproduction/DUB-BOX-FM1/releases" target="_blank" rel="noopener">GitHub release</a>.</li>
+    <li>Check its SHA-256 against <a href="../firmware/SHA256SUMS" download><code>SHA256SUMS</code></a>.</li>
+    <li>Turn the FM-1 <strong>off</strong>, then on while holding <strong>REC</strong> (the m-bootloader's update mode).</li>
+    <li>Open M-Flasher, select the FM-1 and the <code>.fwsc</code>. Keep <strong>“replace bootloader” disabled</strong>
+        and <strong>“erase settings and Bluetooth pairings” unchecked</strong>.</li>
+    <li>Flash, then verify: play USB audio, pair Bluetooth (hold <strong>OCT+</strong>), press <strong>OCT−</strong> for the DUB pages.</li>
+  </ol>
+
+  <h1>First sounds</h1>
+  <p>Plug the FM-1 into your computer (it appears as a 2-in/2-out USB sound card) or pair it as a Bluetooth
+     speaker. Press <strong>OCT−</strong>: the DUB screen. SEL switches the module on. Turn K1 for the DJ filter,
+     K3 to throw the sound into the tape echo, walk to DELAY for the tape itself, to SIREN, hold REC —
+     and PLAY is your drop switch.</p>
+
+  <div class="btns">
+    <a href="../firmware/dub-box-1.0.0.fwsc" download>Download dub-box-1.0.0.fwsc</a>
+    <a class="ghost" href="../dub/">Try the emulator first</a>
+  </div>
+
+  <h1>Notes</h1>
+  <p class="small">DUB-BOX identity <code>FM-1_235</code> — it installs beside SLOOP's own <code>FM-1_234</code>
+     scheme without colliding. Its settings carry over from the audio router's (v16 → v17); SLOOP's projects do not apply.
+     Firmware-only updates preserve the device's m-bootloader, settings and Bluetooth bonds.<br>
+     M-VAVE and FM-1 are trademarks of their respective owners; DUB-BOX is not affiliated with them.
+     Built on fm1-audio-router (MPL-2.0) by MAX RAVE, fm1-base and felucca-bsp by Charles Vestal and Leo Kuroshita;
+     the dub modules are ported from sloop-DUB (GPL-3.0-only). Full licenses in the repository.</p>
+</main>
+</body>
+</html>

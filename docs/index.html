@@ -1,0 +1,83 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DUB-BOX · a dub station firmware for the M-VAVE FM-1</title>
+<style>
+  :root { --bg:#000; --fg:#f2f2f2; --dim:#8a8a92; --tile:#141417; --line:#26262c;
+          --green:#1ecc70; --orange:#ff621a; --yellow:#ffc618; --blue:#4d9bff; --red:#ff2c34; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.6 "Helvetica Neue", -apple-system, BlinkMacSystemFont, Arial, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 70px; }
+  .hero { text-align:center; }
+  .hero img { width: min(420px, 88vw); }
+  .hero p { color: var(--dim); max-width: 60ch; margin: 18px auto 0; }
+  .btns { display:flex; gap: 12px; justify-content:center; flex-wrap:wrap; margin: 30px 0 10px; }
+  .btns a { font: 600 15px/1 inherit; color:#000; background: var(--orange); text-decoration: none;
+            padding: 16px 22px; letter-spacing: .06em; }
+  .btns a.ghost { background: var(--tile); color: var(--fg); border: 1px solid var(--line); }
+  .strip { display:flex; height:4px; max-width: 420px; margin: 26px auto 0; }
+  .strip i { flex:1; } .strip i:nth-child(1){background:var(--blue);} .strip i:nth-child(2){background:var(--green);}
+  .strip i:nth-child(3){background:var(--yellow);} .strip i:nth-child(4){background:var(--orange);}
+  h2 { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+       margin: 44px 0 10px; }
+  .tiles { display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 16px; }
+  .tile { background: var(--tile); padding: 12px 12px 14px; border-top: 3px solid var(--c); min-height: 96px; }
+  .tile b { display:block; font-size: 21px; font-weight:600; color: var(--c); line-height:1.1; }
+  .tile span { display:block; font-size: 12px; color: var(--dim); margin-top: 4px; }
+  p { max-width: 74ch; }
+  .small { color: var(--dim); font-size: 12.5px; }
+  a { color: inherit; }
+  code { background: var(--tile); padding: 1px 6px; font: 13px monospace; }
+  @media (max-width: 560px){ .tiles { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <img src="dubbox-logo.png" alt="DUB-BOX — 1.0 · FM-1">
+    <p>A dub station firmware for the <strong>M-VAVE FM-1</strong>: the full USB audio interface and
+       Bluetooth receiver of the audio router, plus the siren, the tape echo, the DJ filter and the
+       four-band isolator on their own performance pages. No sequencer, no synths — the dub tools,
+       over whatever you feed it.</p>
+    <div class="strip"><i></i><i></i><i></i><i></i></div>
+    <div class="btns">
+      <a href="installer/">Install on the FM-1</a>
+      <a class="ghost" href="dub/">Try the emulator</a>
+    </div>
+  </div>
+
+  <h2>The pages</h2>
+  <div class="tiles">
+    <div class="tile" style="--c: var(--yellow)"><b>DUB</b><span>DJ filter (LP↔HP), mix, throw into the echo</span></div>
+    <div class="tile" style="--c: var(--orange)"><b>SIREN</b><span>5 LFO types × 5 waves, pitch 220–1200 Hz, hot</span></div>
+    <div class="tile" style="--c: var(--blue)"><b>DELAY</b><span>tape echo: time, feedback, level, tone</span></div>
+    <div class="tile" style="--c: var(--green)"><b>ISO</b><span>four bands 90/420/2600 Hz+, gains and kills</span></div>
+  </div>
+
+  <h2>How it plays</h2>
+  <p><strong>OCT−</strong> enters the DUB screen from anywhere and walks the four pages; <strong>HOME</strong> leaves.
+     K1–K3 (ALGO where a page has a fourth) are the page's knobs. <strong>SEL</strong> is the page's switch —
+     the module on DUB, the siren's wave on SIREN. <strong>REC</strong> (or SEL held) sounds the siren at its level,
+     from any screen. The mixer's mute keys kill the ISO bands, all four at once is the total kill.
+     <strong>PLAY</strong> mutes the master — the drop. Everything persists: settings v17 carries the dub state across boots.</p>
+
+  <h2>The station around it</h2>
+  <p>Under the dub modules, the audio router runs whole: 2-in/2-out USB sound card with asynchronous feedback,
+     Bluetooth receiver with SBC, AAC, aptX and aptX HD (own clean-room stack, no vendor blobs), mixer with
+     trims and mute/solo, five-band EQ and peak limiter, meters, waveforms and spectrum. The dub chain sits
+     between the mix and the master FX, and rests bit-transparent when off.</p>
+
+  <h2>Free software</h2>
+  <p class="small">DUB-BOX is GPL-3.0-only: built on <a href="https://github.com/maxravedj/fm1-audio-router" target="_blank" rel="noopener">fm1-audio-router</a>
+     (MPL-2.0) by MAX RAVE, on fm1-base and felucca-bsp by Charles Vestal and Leo Kuroshita; the dub modules are ported
+     from <a href="https://github.com/altessproduction/sloop-dub-fm1" target="_blank" rel="noopener">sloop-DUB</a>.
+     Package identity <code>FM-1_235</code>. M-VAVE and FM-1 are trademarks of their respective owners;
+     DUB-BOX is not affiliated with them. Sources, licenses and the build:
+     <a href="https://github.com/altessproduction/DUB-BOX-FM1" target="_blank" rel="noopener">github.com/altessproduction/DUB-BOX-FM1</a>.</p>
+</main>
+</body>
+</html>
