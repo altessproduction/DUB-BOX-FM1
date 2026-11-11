@@ -543,8 +543,8 @@ static int32_t dub_siren_tick(dub_siren_t *s)
 /* The master chain the audio callback runs, between the USB+BT mix and the
  * router's FX (EQ, limiter) and MASTER: the isolator, the DJ filter, then one
  * fused pass — the siren joined to the bus, the throws into the tape, the
- * tape's return. dub_on gates the whole module; the siren sounds whenever it
- * is triggered (REC / held SEL), dub_on or not. */
+ * tape's return. dub_on gates the whole module; the siren sounds whenever its
+ * gate is down (the last black key), dub_on or not. */
 static uint8_t dub_on;
 static dub_isolator_t dub_isolator;
 static dub_siren_t dub_siren;

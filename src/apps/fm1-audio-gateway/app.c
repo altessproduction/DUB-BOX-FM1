@@ -53,8 +53,6 @@ static void gateway_usb_out_publish(const fx_bank_t *b);
 static void gateway_settings_changed(void);
 #include "mixer.h"
 #include "dub_ui.h"                          /* DUB-BOX: the DUB/SIREN/DELAY/ISO pages */
-static uint8_t gateway_dub_sel_tracking, gateway_dub_sel_fire;
-static uint32_t gateway_dub_sel_ms;
 static int gateway_has_wave(void)
 {
     return gateway_screen == GATEWAY_MAIN && gateway_mode == GATEWAY_MODE_FULL && gateway_display_kind == 1;
@@ -223,7 +221,6 @@ static void gateway_lights(void)
     }
     if(gateway_screen==GATEWAY_DUB){
         active|=1u<<B_OCTDN;
-        if(gateway_dub_sir_held)active|=1u<<B_REC;
         if(gateway_dub_page==DUB_PG_MAIN){
             if(dub_on)active|=1u<<B_SEL; else dim|=1u<<B_SEL;
         }
@@ -375,7 +372,7 @@ void app_init(void)
     uint32_t size = plat_store_size(OBJ_SETTINGS);
     gateway_release_display();gateway_usb_out_apply(0,0);
     dub_init();
-    gateway_dub_page = gateway_dub_sir_held = gateway_dub_sel_tracking = gateway_dub_sel_fire = 0;
+    gateway_dub_page = gateway_dub_sir_held = 0;
     plat_cpu_work_reset();
     plat_cpu2_set(1);
     plat_usb_play_gain(4096u);
@@ -510,19 +507,16 @@ void app_input_only(void)
         gateway_mixer_toggle(3,0);
         plat_cpu_work_end();
     }
-    /* DUB-BOX: REC (anywhere) sounds the siren at LEVEL; releasing lets it die away.
-     * The last black key does the same, held it sings, released it dies — REC and
-     * the key share the hold, the siren stops when both are up. */
+    /* DUB-BOX: the last black key is the siren's gate, its only trigger — held
+     * it sings at LEVEL, released it stops; what it threw into the tape rings
+     * on. REC has nothing to do with it: the key alone holds the note. */
     if (gateway_ui_ready) {
-        if (pressed & (1u << B_REC)) gateway_dub_siren_hold(1);
-        else if (!(buttons & (1u << B_REC)) && gateway_dub_sir_held && !gateway_dub_sir_key)
-            gateway_dub_siren_hold(0);
         if (key_pressed & (1u << GATEWAY_SIR_KEY)) {
             gateway_dub_sir_key = 1;
             gateway_dub_siren_hold(1);
         } else if (!(keys & (1u << GATEWAY_SIR_KEY)) && gateway_dub_sir_key) {
             gateway_dub_sir_key = 0;
-            if (!(buttons & (1u << B_REC))) gateway_dub_siren_hold(0);
+            gateway_dub_siren_hold(0);
         }
     }
     if(gateway_fx_dialog){
@@ -568,21 +562,10 @@ void app_input_only(void)
         gateway_lights();
         for(i=0;i<NE;i++)(void)plat_enc((int)i);gateway_buttons=buttons;return;
     }
-    /* DUB-BOX: SEL on the DUB screen is the page's switch, held it sounds the siren. */
-    if (gateway_screen == GATEWAY_DUB) {
-        if (pressed & (1u << B_SEL)) {
-            gateway_dub_sel_tracking = 1; gateway_dub_sel_fire = 0; gateway_dub_sel_ms = plat_ms();
-        }
-        if (gateway_dub_sel_tracking) {
-            if ((buttons & (1u << B_SEL)) && !gateway_dub_sel_fire && plat_ms() - gateway_dub_sel_ms >= 1000u) {
-                gateway_dub_sel_fire = 1; gateway_dub_siren_hold(1);
-            } else if (!(buttons & (1u << B_SEL))) {
-                if (!gateway_dub_sel_fire) gateway_dub_sel();
-                else if (!gateway_dub_sir_key) gateway_dub_siren_hold(0);
-                gateway_dub_sel_tracking = 0;
-            }
-        }
-    } else gateway_dub_sel_tracking = 0;
+    /* DUB-BOX: SEL on the DUB screen is the page's switch (the module, the
+     * wave, the kills' lift) — the siren is the last black key's alone. */
+    if (gateway_screen == GATEWAY_DUB && (pressed & (1u << B_SEL)))
+        gateway_dub_sel();
     if (pressed & (1u << B_EDIT)) {
         if (gateway_screen != GATEWAY_SETTINGS) {
             gateway_screen = GATEWAY_SETTINGS;

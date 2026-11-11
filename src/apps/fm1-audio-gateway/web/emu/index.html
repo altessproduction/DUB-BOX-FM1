@@ -308,7 +308,7 @@ body.compact #manual { display: none; }
 </section>
 
 <div id="help">
-  <b>OCT−</b> ouvre l'écran DUB (DUB · SIREN · DELAY · ISO) — <kbd>Z</kbd>/<kbd>X</kbd> au clavier, <kbd>espace</kbd> = PLAY, <kbd>R</kbd> = REC, <kbd>↑↓</kbd> = SELECT — <b>touches noires</b> : les 4 premières tuent les bandes ISO, la dernière sonne la sirène ·
+  <b>OCT−</b> ouvre l'écran DUB (DUB · SIREN · DELAY · ISO) — <kbd>Z</kbd>/<kbd>X</kbd> au clavier, <kbd>espace</kbd> = PLAY, <kbd>R</kbd> = REC, <kbd>↑↓</kbd> = SELECT — <b>touches noires</b> : les 4 premières tuent les bandes ISO, la dernière est la gate de la sirène ·
   <a href="../installer/" target="_blank" rel="noopener">installer sur un vrai FM-1</a> ·
   <a href="https://github.com/altessproduction/DUB-BOX-FM1" target="_blank" rel="noopener">GitHub</a>
 </div>
@@ -321,7 +321,8 @@ DUB-BOX est la carte son USB et le récepteur Bluetooth du FM-1 (le routeur audi
 sloop-DUB portés dessus : la sirène, le tape echo, le filtre DJ et l'isolateur sur leurs pages.
 <b>OCT−</b> ouvre l'écran DUB : quatre pages, <span class="kn">DUB · SIREN · DELAY · ISO</span>.
 <b>PLAY</b> rend le master muet — le drop. Les <b>touches noires</b> sont la performance, depuis n'importe quel écran :
-les quatre premières tuent les bandes de l'ISO, la dernière sonne la sirène (tenue, elle chante ; relâchée, elle meurt).
+les quatre premières tuent les bandes de l'ISO, la dernière est la <b>gate de la sirène</b> — tenue, elle chante ;
+relâchée, elle s'arrête, et sa queue continue de sonner dans le delay.
 Les réglages survivent au rechargement de la page.</p>
 
 <div class="cards">
@@ -329,7 +330,7 @@ Les réglages survivent au rechargement de la page.</p>
 <h3>LES QUATRE PAGES DUB — OCT− POUR ENTRER</h3>
 <ul>
 <li><b><span class="chip">DUB</span></b> — <span class="kn">K1</span> le filtre DJ (bipolaire : passe-bas à gauche, passe-haut à droite, <b>FLAT</b> au crantage central, les balayages glissent), <span class="kn">K2</span> le mix, <span class="kn">K3</span> le <i>throw</i> vers le tape echo. <kbd>SEL</kbd> change de module.</li>
-<li><b><span class="chip">SIREN</span></b> — <span class="kn">K1</span> la hauteur 220–1200 Hz, <span class="kn">K2</span> la vitesse 1–16 Hz, <span class="kn">K3</span> le niveau, <kbd>ALGO</kbd> le type de LFO (WAIL, HILO, RAMP, SWEEP, SPACE), <kbd>SEL</kbd> la forme (SQR, PLS, SAW, TRI, SIN). <kbd>REC</kbd> ou la <b>dernière touche noire</b> (tenue) la font sonner — depuis n'importe quel écran.</li>
+<li><b><span class="chip">SIREN</span></b> — <span class="kn">K1</span> la hauteur 220–1200 Hz, <span class="kn">K2</span> la vitesse 1–16 Hz, <span class="kn">K3</span> le niveau, <kbd>ALGO</kbd> le type de LFO (WAIL, HILO, RAMP, SWEEP, SPACE), <kbd>SEL</kbd> la forme (SQR, PLS, SAW, TRI, SIN). La <b>dernière touche noire</b> est sa gate : tenue elle chante, relâchée elle s'arrête (sa queue reste dans le delay) — depuis n'importe quel écran. <kbd>REC</kbd> n'a rien à voir avec elle.</li>
 <li><b><span class="chip">DELAY</span></b> — le tape echo : <span class="kn">K1</span> le temps 40–740 ms, <span class="kn">K2</span> le feedback, <span class="kn">K3</span> le niveau, <kbd>ALGO</kbd> le ton. Le temps glisse comme une bande qui satellite, les têtes ondulent (wow 0,7 Hz, flutter 6,3 Hz), les répétitions passent dans l'amortissement et une saturation douce qui chauffe passage après passage.</li>
 <li><b><span class="chip">ISO</span></b> — quatre bandes <span class="kn">SUB 90 · BASS 420 · MIDS 2600 · TOPS</span> : <span class="kn">K1/K2/K3/ALGO</span> leurs gains −24…+12 dB, les <b>4 premières touches noires</b> (OP1–OP4) les tuent, leur LED s'allume tant que la bande est basse ; les quatre ensemble, c'est le <i>total kill</i>, et un kill réveille le module s'il dormait. <kbd>SEL</kbd> relève tous les kills.</li>
 </ul>

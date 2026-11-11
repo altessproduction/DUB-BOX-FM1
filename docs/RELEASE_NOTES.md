@@ -1,3 +1,25 @@
+# DUB-BOX 1.0.3
+
+The siren answers to one key and behaves like a held note:
+
+- **The last black key (F♯5) is the siren's only trigger** — a gate, not a
+  switch: hold it and the siren sings at its LEVEL, release it and it stops.
+  REC and a held SEL no longer sound it (SEL on the DUB screen is back to
+  being just the page's switch, REC is out of the siren's way).
+- **The release actually stops the sound.** The old release cleared the
+  siren's active flag but left its level hot, so the note rang forever; the
+  gate now drops the level back over a few milliseconds (no click) and the
+  voice sleeps.
+- **The delay tail stays.** Whatever the siren threw into the tape echo (the
+  DUB page's K3 throw, or its own send) keeps ringing after the release — the
+  tail is the tape's, not the key's, and it dies away with the repeats.
+- The siren key's LED is lit while the key is held and rests dim after.
+- The browser emulator's page runs the same firmware and documents the gate;
+  the host suites cover the release (a short fall, then silence) and REC's
+  new neutrality.
+
+Package identity `FM-1_235`, `dub-box-1.0.3.fwsc` (size noted on the release).
+
 # DUB-BOX 1.0.2
 
 The keyboard joins the performance — the black keys drive the dub:

@@ -93,11 +93,12 @@ static void controls(void){
         assert(gateway_dub_sir_held && gateway_dub_sir_key && (lit_keys&(1u<<25)));
         held_keys=0;app_input_only();
         assert(!gateway_dub_sir_held && !gateway_dub_sir_key && (dim_keys&(1u<<25)));
+        tap(B_REC);assert(!gateway_dub_sir_held && !gateway_dub_sir_key);   /* REC is out of the siren's way */
     }
     key(0);key(12);assert(m==gateway_mix_mutes && s==gateway_mix_solos);
     held_keys=1u;app_input_only();tap(B_GLO);assert(gateway_mix_mutes==m);held_keys=0;app_input_only();
     key(0);assert(gateway_mix_mutes==(m^1u));
-    puts("PASS: F3/G3/A3/B3 mute, F4/G4/A4/B4 solo, edge-only Mixer scope, dim/full LEDs and two-way PLAY/MASTER M synchronization");
+    puts("PASS: F3/G3/A3/B3 mute, F4/G4/A4/B4 solo, edge-only Mixer scope, dim/full LEDs, two-way PLAY/MASTER M synchronization, the siren gated by the last black key alone");
 }
 static void settings(void){
     setup(3,5,10);gateway_screen=GATEWAY_MIXER;gateway_view_changed();

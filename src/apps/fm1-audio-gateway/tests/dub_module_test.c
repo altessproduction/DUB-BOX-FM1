@@ -68,6 +68,15 @@ int main(void)
     for(unsigned i=0;i<2000;i++){int32_t y=dub_siren_tick(&s);if(y<0)y=-y;if(y>peak)peak=y;}
     assert(peak>1000000);                                 /* the hot scale sloop's siren had */
     assert(dub_siren_rate_hz(0)==1 && dub_siren_rate_hz(127)==16);
+    /* the gate: release drops the level back over a few samples, then sleep —
+     * not a note that rings forever (the old active=0 alone left level hot) */
+    dub_siren_trigger(&s,0);
+    unsigned ring=0;
+    for(unsigned i=0;i<8820;i++){int32_t y=dub_siren_tick(&s);if(y)ring++;}
+    assert(ring>0 && ring<441);                           /* a short fall, well under 10 ms */
+    for(unsigned i=0;i<64;i++)assert(dub_siren_tick(&s)==0);
+    dub_siren_trigger(&s,100);
+    for(unsigned i=0;i<64;i++)assert(dub_siren_tick(&s)); /* the gate re-arms */
     /* the master chain at rest: bit-transparent, module off and on */
     dub_tape_set_send(0);dub_tape_set_lvl(80);dub_tape_set_fb(70);dub_tape_set_ms(400);dub_tape_set_siren_send(0);
     dub_init();
@@ -75,6 +84,6 @@ int main(void)
     dub_master_process(bus,256);assert(!memcmp(ref,bus,sizeof ref));
     dub_on=1;fill(0.9,7);memcpy(ref,bus,sizeof ref);
     dub_master_process(bus,256);assert(!memcmp(ref,bus,sizeof ref));
-    puts("PASS: dub isolator kills and restores bands, FLAT filter untouched, lowpass shaped, the tape echo throws at its tape time and rings, the siren sleeps until triggered and sings hot, the chain at rest is bit-transparent");
+    puts("PASS: dub isolator kills and restores bands, FLAT filter untouched, lowpass shaped, the tape echo throws at its tape time and rings, the siren sleeps until triggered, sings hot and falls asleep when its gate opens, the chain at rest is bit-transparent");
     return 0;
 }

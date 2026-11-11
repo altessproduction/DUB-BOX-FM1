@@ -4,21 +4,23 @@
  * K1..K3 (and ALGO where a page has a fourth) rule the page's values, SEL does
  * the page's switch (the module on DUB, the siren's wave on SIREN). The keys are
  * the performance, from any screen: the four first black keys kill the ISO bands,
- * the last black key (or REC, or SEL held) sounds the siren at LEVEL.
+ * the last black key is the siren's gate — held it sings at LEVEL, released it
+ * stops, and what it threw into the tape rings on.
  * Included by app.c after fx/ui.h: cv_*, the fonts and the FX helpers exist. */
 #define DUB_UI_ROW_Y0 44
 #define DUB_UI_ROW_DY 42
 static uint8_t gateway_dub_page;
 enum { DUB_PG_MAIN = 0, DUB_PG_SIREN, DUB_PG_DELAY, DUB_PG_ISO, DUB_PG_N };
 static const char *const gateway_dub_page_names[DUB_PG_N] = {"DUB", "SIREN", "DELAY", "ISOLATOR"};
-static uint8_t gateway_dub_sir_lvl = 88;           /* the SIREN page's LEVEL, what REC sounds at */
-static uint8_t gateway_dub_sir_held;               /* REC / held SEL / the black key: the siren sounds */
-static uint8_t gateway_dub_sir_key;                /* the last black key holds it (REC may hold it too) */
+static uint8_t gateway_dub_sir_lvl = 88;           /* the SIREN page's LEVEL, what the key sounds at */
+static uint8_t gateway_dub_sir_held;               /* the siren's gate: down while the last black key is held */
+static uint8_t gateway_dub_sir_key;                /* the key's hold — the gate's only source */
 /* the keyboard's dub keys, every screen: the four first black keys (F#3 G#3 A#3
  * C#4, the OP1..OP4 prints) kill the ISO bands — SUB BASS MIDS TOPS, their LED
- * lit while killed — and the last black key (F#5, no print) sounds the siren,
- * held it sings, released it dies. A kill wakes the module (DUB ON) if it was
- * off: a mute that silently did nothing would read as broken. */
+ * lit while killed — and the last black key (F#5, no print) is the siren's
+ * gate: held it sings, released it stops, the tape's tail rings on. A kill
+ * wakes the module (DUB ON) if it was off: a mute that silently did nothing
+ * would read as broken. */
 static const uint8_t gateway_dub_kill_keys[DUB_BANDS] = {1, 3, 5, 8};
 #define GATEWAY_SIR_KEY 25u
 
@@ -176,7 +178,7 @@ static void gateway_dub_draw(void)
                        gateway_dub_sir_lvl, 127u);
             cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
             cv_text(90, 168, &FONT_L, DUB_SIR_TYPE_NAMES[dub_siren.type], C_WHITE);
-            cv_text(6, 218, &FONT_XS, "SEL WAVE  REC/LAST KEY SOUNDS", C_GRAY);
+            cv_text(6, 218, &FONT_XS, "SEL WAVE  LAST KEY SINGS", C_GRAY);
         } else if (page == DUB_PG_DELAY) {
             dub_ui_val(text, dub_tape_ms, " MS");
             dub_ui_row(0, "K1 TIME", text, RGB(75, 155, 255), dub_tape_ms - 40u, DUB_TAPE_MS_MAX - 40u);
@@ -292,7 +294,10 @@ static void gateway_dub_siren_hold(int down)
         dub_siren_trigger(&dub_siren, gateway_dub_sir_lvl);
         gateway_dub_sir_held = 1;
     } else {
-        dub_siren.active = 0;
+        /* the gate opens: the level falls back over a few samples (no click)
+         * and the siren sleeps — whatever it threw into the tape keeps
+         * ringing, the tail is the tape's, not the key's */
+        dub_siren_trigger(&dub_siren, 0);
         gateway_dub_sir_held = 0;
     }
     gateway_lights();

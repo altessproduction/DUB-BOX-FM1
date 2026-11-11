@@ -53,16 +53,17 @@ MASTER mute box control the same state.
 OCT− opens the DUB screen (DUB, SIREN, DELAY, ISO); OCT− again walks the pages
 and HOME leaves. K1–K3 (ALGORITHM where a page has a fourth) set the page's
 values; SEL is the page's switch — the module on DUB, the siren's wave on SIREN
-— and lifts every kill on ISO. REC, or holding SEL on the DUB page, sounds the
-siren at its LEVEL.
+— and lifts every kill on ISO.
 
 The keyboard is the performance and works on every screen: the first four black
 keys (F♯3/G♯3/A♯3/C♯4 — the OP1–OP4 prints) toggle the ISO band kills (SUB,
 BASS, MIDS, TOPS; a key's LED is lit while its band is down), and the last
-black key (F♯5) sounds the siren while held — release it and it dies away. All
-four kills together are the total kill. A kill wakes the DUB module (DUB ON on
-the DUB page) if it was off. While the mixer is visible the white keys keep
-their strip mute/solo role (F3–B3 mute, F4–B4 solo).
+black key (F♯5) is the siren's gate: hold it and the siren sings at its LEVEL,
+release it and the siren stops — what it threw into the tape echo keeps
+ringing, the tail is the delay's, not the key's. REC has nothing to do with
+the siren. All four kills together are the total kill. A kill wakes the DUB
+module (DUB ON on the DUB page) if it was off. While the mixer is visible the
+white keys keep their strip mute/solo role (F3–B3 mute, F4–B4 solo).
 
 ## EQ and limiter
 
