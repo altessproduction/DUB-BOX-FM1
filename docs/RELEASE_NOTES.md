@@ -19,7 +19,7 @@ hub](https://thefirmwarehub.com/) reads are in place:
   emcc 7.0.0): the **Play** page on the hub runs the real 1.0.6 firmware.
 
 Package identity `FM-1_2345`, `dub-box-1.0.6.fwsc` (613 178 B,
-sha256 à remplir après le build — commit B).
+sha256 4627fb5e…a0e447).
 
 # DUB-BOX 1.0.5
 
