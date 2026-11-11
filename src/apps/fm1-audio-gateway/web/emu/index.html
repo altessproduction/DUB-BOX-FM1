@@ -74,6 +74,15 @@ h1 b { color: var(--txt); }
     touch-action: none; display: none;
 }
 body.compact .cap .grab { display: block; }
+.cap .sweep {                 /* the pot's 300° travel, shown on the DUB pages' continuous knobs */
+    position: absolute; inset: 2%; border-radius: 50%; display: none; pointer-events: none;
+    background: conic-gradient(from 210deg, var(--pcol, #cfd3da) 0 var(--fill, 0deg),
+                rgba(255,255,255,.14) var(--fill, 0deg) 300deg, transparent 300deg);
+    -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 13%), #000 calc(100% - 12%));
+    mask: radial-gradient(closest-side, transparent calc(100% - 13%), #000 calc(100% - 12%));
+}
+.cap.pot .sweep { display: block; }
+.cap.pot { cursor: grab; }
 
 #bezel {
     position: absolute; background: #000; border-radius: 12px;
@@ -320,6 +329,7 @@ body.compact #manual { display: none; }
 DUB-BOX est la carte son USB et le récepteur Bluetooth du FM-1 (le routeur audio), avec les modules dub de
 sloop-DUB portés dessus : la sirène, le tape echo, le filtre DJ et l'isolateur sur leurs pages.
 <b>OCT−</b> ouvre l'écran DUB : cinq pages, <span class="kn">DUB · SIREN · SIREN 2 · DELAY · ISO</span> — les pages de sloop-DUB, chaque page règle ses quatre réglages sur <span class="kn">K1–K4</span>.
+Sur <b>SIREN, SIREN 2, DELAY et ISO</b>, les K1–K4 continus sont des <b>potentiomètres</b>, comme ceux de sloop-DUB : tout le parcours tient en un peu moins d'un tour (<b>300°</b>, vingt crantages), un crantage balaye sa part de la plage — à toute vitesse, sans accélération — et le pointeur du bouton montre la valeur réelle du firmware (glissez vers le haut/bas, ou tournez autour du bouton ; la molette vaut un crantage). Le type et la forme de la sirène restent pas à pas.
 <b>PLAY</b> rend le master muet — le drop. Les <b>touches noires</b> sont la performance, depuis n'importe quel écran :
 les quatre premières tuent les bandes de l'ISO, la dernière est la <b>gate de la sirène</b> — tenue, elle chante ;
 relâchée, elle s'arrête, et sa queue continue de sonner dans le delay.
@@ -472,16 +482,125 @@ function knobDrag(cap, turn) {
     cap.addEventListener('pointerup', up);
     cap.addEventListener('pointercancel', up);
 }
+
+/* ---- the DUB pages' K1..K4 as potentiometers ------------------------------
+   sloop 2.9.8's feel, on screen: the whole course runs in some 300 degrees (20
+   detents; an FM-1 turn is 24), a detent its share of the range, and the pointer
+   sits at the value the firmware really holds — the frame's DUB state (app.c's
+   web_dub), whoever wrote it: these drags, SEL, the boot's saved settings. Drag
+   up/down, or turn around the knob, a detent a notch of either; the lists (the
+   siren's TYPE and WAVE) stay encoders, a step a detent. */
+const DUB_POT = {          // the DUB pages' continuous K1..K4: [min, span] in the firmware's units
+    1: [null, null, [220, 980], [0, 127]],           // SIREN: TYPE WAVE lists — PITCH SEND pots
+    2: [[0, 127], [0, 127], [0, 127], [0, 127]],     // SIREN 2: RATE DEPTH SYM LEVEL
+    3: [[40, 700], [0, 127], [0, 127], [0, 127]],    // DELAY: TIME FEEDBK LEVEL TONE
+    4: [[-24, 36], [-24, 36], [-24, 36], [-24, 36]], // ISO: SUB BASS MIDS TOPS
+};
+const POT_SWEEP = 300, POT_START = -150;   // degrees: 0% at seven o'clock, 100% at five past
+let dubState = null;                       // the frame's DUB state, null before the first one
+const potCap = {};                         // KNOB role → its cap (pot mode comes and goes with the page)
+function deviceOffset(el, ev) {            // the pointer's offset from el's center, in the device's own
+    const r = el.getBoundingClientRect();  // coordinates (the device may be rotated and scaled)
+    const sx = ev.clientX - (r.left + r.width / 2), sy = ev.clientY - (r.top + r.height / 2);
+    let tf = null;
+    try { tf = getComputedStyle(device).transform; } catch (e) {}
+    if (!tf || tf === 'none') return { x: sx, y: sy };
+    let m = null;
+    try { m = new DOMMatrix(tf); } catch (e) { return { x: sx, y: sy }; }
+    const det = m.a * m.d - m.b * m.c;
+    if (!det) return { x: sx, y: sy };
+    return { x: (sx * m.d - sy * m.c) / det, y: (sy * m.a - sx * m.b) / det };
+}
+function parseDub(b) {                     // app.c web_dub's 20 bytes, little-endian, packed
+    const v = new DataView(b.buffer, b.byteOffset, 20);
+    const i8 = (o) => (b[o] & 0x80 ? b[o] - 256 : b[o]);
+    return { page: b[0], type: b[1], wave: b[2], freq: v.getUint16(3, true), send: b[5],
+             rate: b[6], depth: b[7], sym: b[8], sirlvl: b[9], ms: v.getUint16(10, true),
+             fb: b[12], lvl: b[13], tone: b[14], gain: [i8(15), i8(16), i8(17), i8(18)], mute: b[19] };
+}
+function potTick() {                       // every frame: the pots sit at the firmware's values
+    const page = dubState ? dubState.page : -1;
+    for (const role of Object.keys(potCap)) {
+        const { cap } = potCap[role], p = DUB_POT[page], k = role - ENC.KNOB1;
+        let ok = false;
+        if (p && p[k] && dubState) {
+            const [min, span] = p[k];
+            const v = page === 1 ? [null, null, dubState.freq, dubState.send][k]
+                    : page === 2 ? [dubState.rate, dubState.depth, dubState.sym, dubState.sirlvl][k]
+                    : page === 3 ? [dubState.ms, dubState.fb, dubState.lvl, dubState.tone][k]
+                    : [dubState.gain[0], dubState.gain[1], dubState.gain[2], dubState.gain[3]][k];
+            const t = Math.max(0, Math.min(1, (v - min) / span));
+            cap.classList.add('pot');
+            cap.style.setProperty('--rot', (POT_START + POT_SWEEP * t) + 'deg');
+            cap.style.setProperty('--fill', (POT_SWEEP * t) + 'deg');
+            ok = true;
+        }
+        if (!ok) cap.classList.remove('pot');   // a list, the DUB page, or no state yet: the encoder's free spin
+    }
+}
+function potDrag(role, cap) {
+    cap.appendChild(Object.assign(document.createElement('div'), { className: 'grab' }));
+    cap.appendChild(Object.assign(document.createElement('div'), { className: 'sweep' }));
+    let last = null, acc = 0, touch = false, lastAng = null, lastR = 0;
+    const isPot = () => {
+        const p = DUB_POT[dubState ? dubState.page : -1];
+        return !!(p && p[role - ENC.KNOB1]);
+    };
+    const turn = (n) => {                  // n detents: the pot's own, or a list's step
+        if (!n) return;
+        if (!isPot()) encVis[role](n);     // (a list, or no state yet: the encoder's free spin)
+        enc(role, n);
+    };
+    cap.addEventListener('wheel', (ev) => { ev.preventDefault(); turn(ev.deltaY < 0 ? 1 : -1); }, { passive: false });
+    cap.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault();
+        touch = ev.pointerType !== 'mouse';
+        last = deviceRotated ? ev.clientX : ev.clientY;
+        const o = deviceOffset(cap, ev);
+        lastAng = Math.atan2(o.x, -o.y) * 180 / Math.PI;
+        lastR = Math.hypot(o.x, o.y);
+        acc = 0;
+        try { cap.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
+    cap.addEventListener('pointermove', (ev) => {
+        if (last === null) return;
+        const cur = deviceRotated ? ev.clientX : ev.clientY;
+        let d = (deviceRotated ? (cur - last) : (last - cur)) / (touch ? 14 : 9);   // a detent a notch, as ever
+        last = cur;
+        const o = deviceOffset(cap, ev);
+        const ang = Math.atan2(o.x, -o.y) * 180 / Math.PI, r = Math.hypot(o.x, o.y);
+        if (lastAng !== null && r > 15 && lastR > 15) {    // around the knob: the turn rules
+            let da = ang - lastAng;
+            if (da > 180) da -= 360; else if (da < -180) da += 360;
+            if (Math.abs(da) > 1.5) d = da / (POT_SWEEP / 20);
+        }
+        lastAng = ang; lastR = r;
+        acc += d;
+        const s = Math.trunc(acc);
+        if (s) { acc -= s; turn(s); }
+    });
+    const up = () => { last = null; lastAng = null; };
+    cap.addEventListener('pointerup', up);
+    cap.addEventListener('pointercancel', up);
+}
 function buildKnobs() {
     const KCOL = { k1: '#4f8fe8', k2: '#46b96b', k3: '#e0c23e', k4: '#e08a3e' };
     for (const [name, role, cx, cy, col] of ENCODERS) {
         label(name, cx, cy - 36);
         const cap = el('cap', cx, cy, KNOB_D, KNOB_D);
-        if (col) cap.style.setProperty('--pcol', KCOL[col]);
-        let rot = 0;
-        const vis = (s) => { rot += s * 18; cap.style.setProperty('--rot', rot + 'deg'); };
-        encVis[role] = vis;
-        knobDrag(cap, (s) => { vis(s); enc(role, s); });
+        if (col) {
+            cap.style.setProperty('--pcol', KCOL[col]);
+            let rot = 0;
+            encVis[role] = (s) => { rot += s * 18; cap.style.setProperty('--rot', rot + 'deg'); };
+            potCap[role] = { cap };
+            potDrag(role, cap);
+        } else {
+            const cap2 = cap;
+            let rot = 0;
+            const vis = (s) => { rot += s * 18; cap2.style.setProperty('--rot', rot + 'deg'); };
+            encVis[role] = vis;
+            knobDrag(cap2, (s) => { vis(s); enc(role, s); });
+        }
     }
     label('MASTER', MASTER.cx, MASTER.cy - 36);
     const cap = el('cap', MASTER.cx, MASTER.cy, KNOB_D, KNOB_D);
@@ -861,6 +980,7 @@ async function powerOn() {
                 const m = e.data;
                 if (m.type === "ready") res();
                 else if (m.type === "frame") {
+                    if (m.dub) { dubState = parseDub(m.dub); potTick(); }   // the DUB screen's state: the pots sit at it
                     if (m.fb) drawFB(m.fb);
                     applyLeds(m.buttons, m.keys, m.dimButtons, m.dimKeys);
                     if (m.load !== undefined) $("cpu").textContent = `${m.load}% de ce computer`;

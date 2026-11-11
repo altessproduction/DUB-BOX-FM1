@@ -57,6 +57,15 @@ send / rate, depth, symmetry, level), DELAY's K4 is the tone. SEL is the page's
 switch — the module on DUB, the siren's wave on SIREN — and lifts every kill
 on ISO.
 
+On SIREN, SIREN 2, DELAY and ISO the continuous K1–K4 are potentiometers, as
+sloop-DUB set them (2.9.8): a detent sweeps its share of the range, the whole
+course runs in some 300 degrees (20 detents; an FM-1 turn is 24), one share a
+detent however fast — no acceleration, a turn never outruns the pointer. The
+siren's TYPE and WAVE stay lists, a step a detent. In the browser emulator the
+K1–K4 caps show the same 300° travel, sit at the firmware's real value, and
+turn by dragging up/down, by a circular turn around the knob, or a detent a
+wheel notch.
+
 The keyboard is the performance and works on every screen: the first four black
 keys (F♯3/G♯3/A♯3/C♯4 — the OP1–OP4 prints) toggle the ISO band kills (SUB,
 BASS, MIDS, TOPS; a key's LED is lit while its band is down), and the last

@@ -1278,3 +1278,5 @@ static void gateway_settings_draw(void)
         cv_begin(240,h,C_BLACK);cv_text((240-text_w(&FONT_XS,status))/2,218-(int)band,&FONT_XS,status,RGB(255,40,40));cv_blit(0,band);
     }
 }
+
+__attribute__((used, visibility("default"))) uint32_t web_dbg_page_addr_app(void) { return (uint32_t)(uintptr_t)&gateway_dub_page; }

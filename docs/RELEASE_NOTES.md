@@ -1,3 +1,28 @@
+# DUB-BOX 1.0.5
+
+The DUB pages' knobs feel like the pots they are named after — sloop 2.9.8's
+potentiometer feel, on the device and in the emulator:
+
+- **The continuous K1–K4 of SIREN, SIREN 2, DELAY and ISO are pots**: a detent
+  sweeps its share of the range, the whole course runs in some 300 degrees
+  (20 detents; an FM-1 turn is 24 detents), one share a detent however fast —
+  no acceleration, a turn never outruns the pointer. The siren's pitch crosses
+  220–1200 Hz in 20 detents, the delay's time 40–740 ms in 20, the ISO gains
+  −24…+12 dB in 18. TYPE and WAVE stay lists, a step a detent (five names over
+  300 degrees would crawl).
+- **The emulator's K1–K4 match**: the caps show the 300° travel with the part
+  of the course already covered in the knob's colour, the pointer sits at the
+  value the firmware really holds — a new readback (`web_dub`, app.c's APP_WEB
+  export, published with each frame) keeps them honest through SEL turns, the
+  saved settings at boot and page walks. Turn them by dragging up/down, by a
+  circular turn around the knob, or a detent a wheel notch; the DUB page and
+  the lists stay free-spinning encoders.
+- The RAM-code vouch list follows the newer JieLi clang's inlining (the vouched
+  uECC entries appear as their internals; the gone symbols are marked with `?`).
+
+Package identity `FM-1_235`, `dub-box-1.0.5.fwsc` (613 534 B,
+sha256 c61824c2…91d0d).
+
 # DUB-BOX 1.0.4
 
 The dub pages carry sloop-DUB's full settings, on the knobs they sit on there:

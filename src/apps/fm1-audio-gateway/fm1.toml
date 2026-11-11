@@ -93,6 +93,7 @@ o2 = ["../../bt/br/aptx_dec/aptx_dec.c", "../../bt/br/aptx_dec/aptx_fir.c", "../
  "../../bt/br/aac_dec/pvaac/unpack_idx.c",
  "../../bt/br/aac_dec/pvaac/window_tables_fxp.c"]
 o2_cflags = ["-fwrapv"]
+web_cflags = ["-DAPP_WEB=1"]   /* the app's exports for its emulator's page (web.c) */
 device_include = ["compat"]
 asm = ["../../bsp/chip/fm1_aptx_dsp.S"]
 o2_include = ["../../bt/br/aac_dec/pvaac/pv_fm1.h"]
@@ -112,7 +113,11 @@ emu = ["data", "midi", "reboot", "image"]
 # AAC: compiler switch jump tables (frame/hufffac), and huffspec's closed
 # decode_huff_cw_tab1..11 and unpack_idx families. Every target is in SRAM.
 # cpu2_job dispatches only AAC, SBC, aptX or resampler jobs linked into SRAM.
+# (the JieLi clang of 2026-07 inlines: the vouched uECC entries show as their
+#  internals now — x_side_default, double_jacobian_default, XYcZ_add(C), apply_z —
+#  and fm1_rfc_txlo_search / uECC_vli_modMult_fast are gone as symbols (the ? ones))
 ram_code_allow = ["cpu2_job", "PVMP4AudioDecodeFrame", "huffspec_fxp", "hufffac","OI_SBC_SynthFrame", "DecodeBody", "OI_SBC_ComputeBitAllocation",
- "btp_en_start", "btp_put", "fm1_rfc_txlo_search", "fm1_ble_rf_exec",
+ "btp_en_start", "btp_put", "fm1_rfc_txlo_search?", "fm1_ble_rf_exec",
  "ble_app_midi_pop", "ble_app_midi_peek", "ble_poll",
- "uECC_vli_modMult_fast", "EccPoint_mult", "uECC_generate_random_int"]
+ "uECC_vli_modMult_fast?", "EccPoint_mult", "uECC_generate_random_int",
+ "x_side_default", "double_jacobian_default", "XYcZ_add", "XYcZ_addC", "apply_z"]

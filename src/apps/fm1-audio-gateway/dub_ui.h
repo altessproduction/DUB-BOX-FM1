@@ -220,6 +220,21 @@ static void gateway_dub_draw(void)
         cv_oy = 0; cv_blit(0, band);
     }
 }
+/* sloop 2.9.8's potentiometer feel for the DUB pages' continuous settings (SIREN's
+ * PITCH and SEND, SIREN 2's four, DELAY's four, ISO's four gains): a detent sweeps its
+ * share of the range, so the whole course runs in some 300 degrees (20 detents; an FM-1
+ * turn is 24 detents) and a turn never outruns the pointer. The lists (the siren's TYPE
+ * and WAVE) keep a step a detent: five names over 300 degrees would crawl. One share a
+ * detent however fast, no accel: the pot's feel is the point (delta carries the frame's
+ * detents, one a click at any speed) */
+#define DUB_POT_DETENTS 20
+static int32_t dub_pot_s(int32_t s, int32_t span)
+{
+    int32_t st = (span + DUB_POT_DETENTS - 1) / DUB_POT_DETENTS;   /* the detent's share, round up */
+    if (st < 1)
+        st = 1;
+    return s * st;
+}
 /* the page's knobs: enc is EN_*, delta the detents */
 static void gateway_dub_turn(unsigned enc, int delta)
 {
@@ -236,9 +251,9 @@ static void gateway_dub_turn(unsigned enc, int delta)
             dub_changed();
         }
     } else if (page == DUB_PG_SIREN) {
-        /* sloop's SIR page: the type and the wave cycle, the pitch glides, the
-         * send throws the siren into the tape (its tail rings there) */
-        int step = gateway_fx_step(enc, delta);
+        /* sloop's SIR page: the type and the wave cycle a detent a step, the
+         * pitch and the send are pots (2.9.8's feel); the send throws the
+         * siren into the tape (its tail rings there) */
         if (enc == EN_K1) {
             dub_siren_set_type(&dub_siren, (uint8_t)((dub_siren.type + delta % DUB_SIR_TYPES + DUB_SIR_TYPES) % DUB_SIR_TYPES));
             dub_changed();
@@ -246,54 +261,47 @@ static void gateway_dub_turn(unsigned enc, int delta)
             dub_siren_set_wave(&dub_siren, (uint8_t)((dub_siren.wave + delta % DUB_SIW_N + DUB_SIW_N) % DUB_SIW_N));
             dub_changed();
         } else if (enc == EN_K3) {
-            int v = (int)dub_siren.freq_hz + step * delta * 2;
-            dub_siren_set_freq(&dub_siren, (uint16_t)(v < 220 ? 220 : v));
+            dub_siren_set_freq(&dub_siren, (uint16_t)dub_clamp((int)dub_siren.freq_hz + dub_pot_s(delta, 980), 220, 1200));
             dub_changed();
         } else if (enc == EN_K4) {
-            int v = (int)dub_siren.send + step * delta;
-            v = v < 0 ? 0 : v;
+            int v = dub_clamp((int)dub_siren.send + dub_pot_s(delta, 127), 0, 127);
             dub_siren_set_send(&dub_siren, (uint8_t)v);
             dub_tape_set_siren_send((uint8_t)v);   /* the tape keeps its own copy */
             dub_changed();
         }
     } else if (page == DUB_PG_SIREN2) {
         /* sloop's SR2 page: the LFO's rate, the pitch sweep's depth, the LFO's
-         * symmetry, the level the last black key sounds at */
-        int step = gateway_fx_step(enc, delta);
+         * symmetry, the level the last black key sounds at — pots all four
+         * (2.9.8's feel) */
         if (enc == EN_K1) {
-            int v = (int)dub_siren.rate + step * delta;
-            dub_siren_set_rate(&dub_siren, (uint8_t)(v < 0 ? 0 : v));
+            dub_siren_set_rate(&dub_siren, (uint8_t)dub_clamp((int)dub_siren.rate + dub_pot_s(delta, 127), 0, 127));
             dub_changed();
         } else if (enc == EN_K2) {
-            int v = (int)dub_siren.depth + step * delta;
-            dub_siren_set_depth(&dub_siren, (uint8_t)(v < 0 ? 0 : v));
+            dub_siren_set_depth(&dub_siren, (uint8_t)dub_clamp((int)dub_siren.depth + dub_pot_s(delta, 127), 0, 127));
             dub_changed();
         } else if (enc == EN_K3) {
-            int v = (int)dub_siren.sym + step * delta;
-            dub_siren_set_sym(&dub_siren, (uint8_t)(v < 0 ? 0 : v));
+            dub_siren_set_sym(&dub_siren, (uint8_t)dub_clamp((int)dub_siren.sym + dub_pot_s(delta, 127), 0, 127));
             dub_changed();
         } else if (enc == EN_K4) {
-            int v = (int)gateway_dub_sir_lvl + delta;
-            gateway_dub_sir_lvl = (uint8_t)(v < 0 ? 0 : v > 127 ? 127 : v);
+            int v = dub_clamp((int)gateway_dub_sir_lvl + dub_pot_s(delta, 127), 0, 127);
+            gateway_dub_sir_lvl = (uint8_t)v;
             if (gateway_dub_sir_held) dub_siren_trigger(&dub_siren, gateway_dub_sir_lvl);
             dub_changed();
         }
     } else if (page == DUB_PG_DELAY) {
-        int step = gateway_fx_step(enc, delta);
-        if (enc == EN_K1) { dub_tape_set_ms((uint16_t)(dub_tape_ms + step * delta * 5)); dub_changed(); }
+        /* the tape echo's four, pots (2.9.8's feel): the time's whole 40..740 ms
+         * runs in some 300 degrees, and so do the repeats' level, feedback and tone */
+        if (enc == EN_K1) { dub_tape_set_ms((uint16_t)dub_clamp((int)dub_tape_ms + dub_pot_s(delta, DUB_TAPE_MS_MAX - 40u), 40, DUB_TAPE_MS_MAX)); dub_changed(); }
         else if (enc == EN_K2) {
-            int v = (int)dub_tape_fb + step * delta;
-            dub_tape_set_fb((uint8_t)(v < 0 ? 0 : v));
+            dub_tape_set_fb((uint8_t)dub_clamp((int)dub_tape_fb + dub_pot_s(delta, 127), 0, 127));
             dub_changed();
         }
         else if (enc == EN_K3) {
-            int v = (int)dub_tape_lvl + step * delta;
-            dub_tape_set_lvl((uint8_t)(v < 0 ? 0 : v));
+            dub_tape_set_lvl((uint8_t)dub_clamp((int)dub_tape_lvl + dub_pot_s(delta, 127), 0, 127));
             dub_changed();
         }
         else if (enc == EN_K4) {
-            int v = (int)dub_tape_tone + step * delta;
-            dub_tape_set_tone((uint8_t)(v < 0 ? 0 : v));
+            dub_tape_set_tone((uint8_t)dub_clamp((int)dub_tape_tone + dub_pot_s(delta, 127), 0, 127));
             dub_changed();
         }
     } else {
@@ -301,7 +309,7 @@ static void gateway_dub_turn(unsigned enc, int delta)
             unsigned band = enc == EN_K1 ? DUB_SUB : enc == EN_K2 ? DUB_BASS : enc == EN_K3 ? DUB_MIDS : DUB_TOPS;
             dub_band_param_t p = dub_isolator.p[band];
             if (!p.mute) {
-                int g = p.gain_db + delta;
+                int g = p.gain_db + dub_pot_s(delta, 36);   /* -24..+12 dB in some 300 degrees */
                 p.gain_db = (int8_t)(g < -24 ? -24 : g > 12 ? 12 : g);
                 dub_isolator_set_band(&dub_isolator, band, p);
                 dub_changed();
