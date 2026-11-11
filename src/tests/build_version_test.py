@@ -18,14 +18,14 @@ with tempfile.TemporaryDirectory() as name:
     git('-c', 'user.name=Test', '-c', 'user.email=test@localhost', 'commit', '--allow-empty', '-qm', 'test')
     with patch.dict(os.environ, {}, clear=True):
         info = version_info(root)
-        assert info['version'] == 'DEV-' + git('rev-parse', 'HEAD')[:8] and info['identity'] == 'FM-1_235'
+        assert info['version'] == 'DEV-' + git('rev-parse', 'HEAD')[:8] and info['identity'] == 'FM-1_23400'
         assert not info['tag'] and info['package'] == 'dub-box.fwsc'
         for tag in ('v1.2.3', '1.2.3', 'v1.2.3-rc.1'):
             info = version_info(root, tag)
-            assert info['identity'] == 'FM-1_235' and info['version'] == tag.removeprefix('v')
+            assert info['identity'] == 'FM-1_234010203' and info['version'] == tag.removeprefix('v')
         for tag in ('v0.1', '0.1', 'v0.1-rc.1'):
             info = version_info(root, tag)
-            assert info['identity'] == 'FM-1_235' and info['version'] == tag.removeprefix('v')
+            assert info['identity'] == 'FM-1_234000100' and info['version'] == tag.removeprefix('v')
             assert info['package'] == f"dub-box-{tag.removeprefix('v')}.fwsc"
         git('tag', 'v0.1')
         assert version_info(root)['version'] == '0.1'
@@ -41,9 +41,9 @@ with tempfile.TemporaryDirectory() as name:
             except SystemExit:
                 pass
     with patch.dict(os.environ, {'GITHUB_REF_TYPE': 'tag', 'GITHUB_REF_NAME': 'v2.3.4'}, clear=True):
-        assert version_info(root)['identity'] == 'FM-1_235'
+        assert version_info(root)['identity'] == 'FM-1_234020304'
     with patch.dict(os.environ, {'GITHUB_REF_TYPE': 'tag', 'GITHUB_REF_NAME': 'v0.1'}, clear=True):
-        assert version_info(root)['identity'] == 'FM-1_235'
+        assert version_info(root)['identity'] == 'FM-1_234000100'
     dirs = ('apps/fm1-audio-gateway', 'device', 'include', 'bt/br', 'bsp/chip')
     for rel in dirs:
         (root / 'src' / rel).mkdir(parents=True)
@@ -54,4 +54,4 @@ with tempfile.TemporaryDirectory() as name:
     p.write_text('two')
     assert source_build_id(root, 'DEV') != a
     assert source_build_id(root, '1.2.3') != source_build_id(root, 'DEV')
-print('PASS: explicit/exact/CI release tags, untagged DEV labels, the fixed DUB-BOX identity and source hash provenance')
+print('PASS: explicit/exact/CI release tags, untagged DEV labels, the author-stem DUB-BOX identity and source hash provenance')

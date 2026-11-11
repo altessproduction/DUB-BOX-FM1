@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # USB audio gateway with read-only stereo waveform and meters. Playback depends on recording being enabled.
 name = "DUB-BOX"
-id_prefix = "FM-1_235"
+# The author's identity stem (ASS-ID's scheme): releases answer FM-1_234 + two
+# digits per version component (1.0.6 -> FM-1_234010006); dev builds stem + 00.
+id_prefix = "FM-1_234"
 bootloader = "../../boot/m-bootloader/fm1-uboot.boot"
 bootloader_sha256 = "cedc9c17648bdeecda5c8d0ffffe2211849f8a36ab615fe49d6cc46d249baf44"
 usb_manufacturer = "altessproduction"

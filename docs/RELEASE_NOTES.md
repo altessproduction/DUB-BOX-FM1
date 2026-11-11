@@ -7,11 +7,12 @@ hub](https://thefirmwarehub.com/) reads are in place:
   (`other` — a dub station, not a synth or a groovebox), the emulator as the
   hub's **Play** link, the card image (`assets/github/dubbox.png`, 240×240,
   43 KB) and the card colour (DUB-BOX orange, `#FF621A`).
-- **The package identity stays `FM-1_235`.** On the hub, `FM-1_234` is already
-  taken — by sloop-DUB 1.0.0, this fork's sibling firmware; the hub requires
-  one identity per firmware (its checker refuses a second one, and two
-  firmwares with one number cannot be told apart on a connected FM-1). DUB-BOX
-  installs beside FM-1_234 without colliding, as it always has.
+- **The package identity follows the author's stem, as the hub's releases
+  do**: altessproduction's `FM-1_234` + two digits per version component —
+  1.0.6 answers **FM-1_234010006** (ASS-ID 1.0 answers `FM-1_234010000`;
+  sloop-DUB keeps the plain `FM-1_234`). The build restores fm1-base's own
+  derivation — the v1.0.5 tree had pinned a fixed `FM-1_235` in build.py and
+  build_version.py instead.
 - **The v1.0.5 tag's CI failure fixed**: fm1.toml carried a C-style comment
   (`/* … */`) on the `web_cflags` line — TOML only takes `#`. The 1.0.5
   package itself was sound (built and published from the same source); only
@@ -19,8 +20,8 @@ hub](https://thefirmwarehub.com/) reads are in place:
 - The browser emulator's wasm rebuilt with the 1.0.6 label (the same code,
   emcc 7.0.0): the **Play** page on the hub runs the real 1.0.6 firmware.
 
-Package identity `FM-1_235`, `dub-box-1.0.6.fwsc` (613 178 B,
-sha256 6456b6b2…e7d6f).
+Package identity `FM-1_234010006`, `dub-box-1.0.6.fwsc` (613 178 B,
+sha256 d0ad1087…714bd).
 
 # DUB-BOX 1.0.5
 

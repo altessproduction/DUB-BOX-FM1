@@ -34,14 +34,15 @@ def version_info(root, tag=None):
         if not m or len(tag) > 40:
             raise SystemExit("Release tag must be [v]MAJOR.MINOR[.PATCH][-prerelease], each number 0..99")
         version = tag.removeprefix("v")
-        # DUB-BOX keeps sloop-DUB's own-identity scheme: a fixed package identity
-        # that cannot collide with the felucca/fm1audio FM-1_9XY/FM-1_731 families
-        # on the firmware hub. The tag only names the release.
-        identity = "FM-1_235"
+        # DUB-BOX answers the author's stem (234 — sloop-DUB's plain FM-1_234,
+        # ASS-ID's FM-1_234010000) plus the release's digits, two per component:
+        # fm1-base's own rule, so 1.0.6 -> FM-1_234010006. The tag names the
+        # release and its digits in the identity.
+        identity = "FM-1_234%02d%02d%02d" % (int(m.group(1)), int(m.group(2)), int(m.group(3) or 0))
         package = f"dub-box-{version}.fwsc"
     else:
         version = "DEV" + ("-" + commit[:8] if commit else "")
-        identity, package = "FM-1_235", "dub-box.fwsc"
+        identity, package = "FM-1_23400", "dub-box.fwsc"
     return dict(version=version, tag=tag, identity=identity, package=package, commit=commit)
 
 

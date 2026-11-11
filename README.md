@@ -87,8 +87,9 @@ python src/scripts/package_gateway.py
 tests: `python src/scripts/build_gateway.py --host && python src/scripts/test_gateway.py`
 — 445 checks, the dub modules included (`dub_module_test`). See
 [docs/BUILD.md](docs/BUILD.md) for the whole recipe and the release flow.
-The release identity is fixed: **FM-1_235** (sloop-DUB's own-identity scheme —
-no version-derived FM-1_9XY collisions on the firmware hub).
+The release identity follows the author's stem: **FM-1_234** + two digits per
+version component — 1.0.6 answers **FM-1_234010006** (ASS-ID's scheme;
+sloop-DUB keeps the plain FM-1_234).
 
 # Licensing
 
