@@ -1,17 +1,18 @@
 /* SPDX-License-Identifier: GPL-3.0-only
- * DUB-BOX's DUB screen: the four pages DUB, SIREN, DELAY and ISO, sloop's dub
- * pages on the router's controls. OCT- enters and walks the pages, HOME leaves.
- * K1..K3 (and ALGO where a page has a fourth) rule the page's values, SEL does
- * the page's switch (the module on DUB, the siren's wave on SIREN). The keys are
- * the performance, from any screen: the four first black keys kill the ISO bands,
- * the last black key is the siren's gate — held it sings at LEVEL, released it
- * stops, and what it threw into the tape rings on.
+ * DUB-BOX's DUB screen: the five pages DUB, SIREN, SIREN 2, DELAY and ISO —
+ * sloop's dub pages (DUB, SIR, SR2, DLY, ISO) on the router's controls, each
+ * page's four settings on K1..K4 in sloop's order. OCT- enters and walks the
+ * pages, HOME leaves. SEL does the page's switch (the module on DUB, the
+ * siren's wave on SIREN). The keys are the performance, from any screen: the
+ * four first black keys kill the ISO bands, the last black key is the siren's
+ * gate — held it sings at LEVEL, released it stops, and what it threw into the
+ * tape rings on.
  * Included by app.c after fx/ui.h: cv_*, the fonts and the FX helpers exist. */
 #define DUB_UI_ROW_Y0 44
 #define DUB_UI_ROW_DY 42
 static uint8_t gateway_dub_page;
-enum { DUB_PG_MAIN = 0, DUB_PG_SIREN, DUB_PG_DELAY, DUB_PG_ISO, DUB_PG_N };
-static const char *const gateway_dub_page_names[DUB_PG_N] = {"DUB", "SIREN", "DELAY", "ISOLATOR"};
+enum { DUB_PG_MAIN = 0, DUB_PG_SIREN, DUB_PG_SIREN2, DUB_PG_DELAY, DUB_PG_ISO, DUB_PG_N };
+static const char *const gateway_dub_page_names[DUB_PG_N] = {"DUB", "SIREN", "SIREN 2", "DELAY", "ISOLATOR"};
 static uint8_t gateway_dub_sir_lvl = 88;           /* the SIREN page's LEVEL, what the key sounds at */
 static uint8_t gateway_dub_sir_held;               /* the siren's gate: down while the last black key is held */
 static uint8_t gateway_dub_sir_key;                /* the key's hold — the gate's only source */
@@ -147,7 +148,8 @@ static void gateway_dub_draw(void)
         cv_text(6, 22, &FONT_XS, gateway_dub_page_names[page], RGB(96, 200, 255));
         const char *state = "";
         if (page == DUB_PG_MAIN) state = dub_on ? "ON" : "OFF";
-        if (page == DUB_PG_SIREN) state = gateway_dub_sir_held ? "SOUND" : "";
+        if (page == DUB_PG_SIREN || page == DUB_PG_SIREN2)
+            state = gateway_dub_sir_held ? "SOUND" : "";
         if (page == DUB_PG_DELAY) state = dub_tape_lvl ? "" : "MUTED";
         if (*state)
             cv_text(234 - text_w(&FONT_XS, state), 22, &FONT_XS, state,
@@ -169,16 +171,27 @@ static void gateway_dub_draw(void)
             dub_ui_row(2, "K3 SEND", text, dub_tape_send ? RGB(75, 210, 150) : C_GRAY, dub_tape_send, 127u);
             cv_text(6, 218, &FONT_XS, "SEL ON/OFF", C_GRAY);
         } else if (page == DUB_PG_SIREN) {
+            /* sloop's SIR page: K1 TYPE, K2 WAVE, K3 PITCH, K4 SEND */
+            dub_ui_row(0, "K1 TYPE", DUB_SIR_TYPE_NAMES[dub_siren.type], RGB(255, 140, 25), 0, 0);
+            dub_ui_row(1, "K2 WAVE", DUB_SIW_NAMES[dub_siren.wave], RGB(255, 140, 25), 0, 0);
             dub_ui_val(text, dub_siren.freq_hz, " HZ");
-            dub_ui_row(0, "K1 PITCH", text, RGB(255, 140, 25), dub_siren.freq_hz - 220u, 980u);
-            dub_ui_val(text, dub_siren_rate_hz(dub_siren.rate), " HZ");
-            dub_ui_row(1, "K2 RATE", text, RGB(255, 140, 25), dub_siren_rate_hz(dub_siren.rate) - 1u, 15u);
-            dub_ui_num(text, gateway_dub_sir_lvl);
-            dub_ui_row(2, "K3 LEVEL", text, gateway_dub_sir_lvl ? RGB(255, 140, 25) : C_GRAY,
-                       gateway_dub_sir_lvl, 127u);
-            cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
-            cv_text(90, 168, &FONT_L, DUB_SIR_TYPE_NAMES[dub_siren.type], C_WHITE);
+            dub_ui_row(2, "K3 PITCH", text, RGB(255, 140, 25), dub_siren.freq_hz - 220u, 980u);
+            if (dub_siren.send) dub_ui_num(text, dub_siren.send); else dub_ui_put(text, "DRY");
+            dub_ui_row(3, "K4 SEND", text, dub_siren.send ? RGB(75, 210, 150) : C_GRAY,
+                       dub_siren.send, 127u);
             cv_text(6, 218, &FONT_XS, "SEL WAVE  LAST KEY SINGS", C_GRAY);
+        } else if (page == DUB_PG_SIREN2) {
+            /* sloop's SR2 page: K1 RATE, K2 DEPTH, K3 SYM, K4 LEVEL */
+            dub_ui_val(text, dub_siren_rate_hz(dub_siren.rate), " HZ");
+            dub_ui_row(0, "K1 RATE", text, RGB(255, 140, 25), dub_siren_rate_hz(dub_siren.rate) - 1u, 15u);
+            dub_ui_num(text, dub_siren.depth);
+            dub_ui_row(1, "K2 DEPTH", text, RGB(255, 140, 25), dub_siren.depth, 127u);
+            dub_ui_num(text, dub_siren.sym);
+            dub_ui_row(2, "K3 SYM", text, RGB(255, 140, 25), dub_siren.sym, 127u);
+            dub_ui_num(text, gateway_dub_sir_lvl);
+            dub_ui_row(3, "K4 LEVEL", text, gateway_dub_sir_lvl ? RGB(255, 140, 25) : C_GRAY,
+                       gateway_dub_sir_lvl, 127u);
+            cv_text(6, 218, &FONT_XS, "LAST KEY SINGS", C_GRAY);
         } else if (page == DUB_PG_DELAY) {
             dub_ui_val(text, dub_tape_ms, " MS");
             dub_ui_row(0, "K1 TIME", text, RGB(75, 155, 255), dub_tape_ms - 40u, DUB_TAPE_MS_MAX - 40u);
@@ -187,12 +200,11 @@ static void gateway_dub_draw(void)
             dub_ui_num(text, dub_tape_lvl);
             dub_ui_row(2, "K3 LEVEL", text, dub_tape_lvl ? RGB(75, 155, 255) : RGB(255, 90, 60),
                        dub_tape_lvl, 127u);
-            cv_text(6, 170 + 22, &FONT_XS, "ALGO", C_GRAY);
             dub_ui_num(text, dub_tape_tone);
-            cv_text(90, 168, &FONT_L, text, C_WHITE);
+            dub_ui_row(3, "K4 TONE", text, RGB(75, 155, 255), dub_tape_tone, 127u);
             cv_text(6, 218, &FONT_XS, "HOME BACK", C_GRAY);
         } else {
-            static const char *const band_names[DUB_BANDS] = {"K1 SUB", "K2 BASS", "K3 MIDS", "A4 TOPS"};
+            static const char *const band_names[DUB_BANDS] = {"K1 SUB", "K2 BASS", "K3 MIDS", "K4 TOPS"};
             for (unsigned b = 0; b < DUB_BANDS; b++) {
                 const dub_band_param_t *p = &dub_isolator.p[b];
                 if (p->mute) {
@@ -224,26 +236,68 @@ static void gateway_dub_turn(unsigned enc, int delta)
             dub_changed();
         }
     } else if (page == DUB_PG_SIREN) {
+        /* sloop's SIR page: the type and the wave cycle, the pitch glides, the
+         * send throws the siren into the tape (its tail rings there) */
         int step = gateway_fx_step(enc, delta);
-        if (enc == EN_K1) { dub_siren_set_freq(&dub_siren, (uint16_t)(dub_siren.freq_hz + step * delta * 2)); dub_changed(); }
-        else if (enc == EN_K2) { dub_siren_set_rate(&dub_siren, (uint8_t)(dub_siren.rate + step * delta)); dub_changed(); }
-        else if (enc == EN_K3) {
+        if (enc == EN_K1) {
+            dub_siren_set_type(&dub_siren, (uint8_t)((dub_siren.type + delta % DUB_SIR_TYPES + DUB_SIR_TYPES) % DUB_SIR_TYPES));
+            dub_changed();
+        } else if (enc == EN_K2) {
+            dub_siren_set_wave(&dub_siren, (uint8_t)((dub_siren.wave + delta % DUB_SIW_N + DUB_SIW_N) % DUB_SIW_N));
+            dub_changed();
+        } else if (enc == EN_K3) {
+            int v = (int)dub_siren.freq_hz + step * delta * 2;
+            dub_siren_set_freq(&dub_siren, (uint16_t)(v < 220 ? 220 : v));
+            dub_changed();
+        } else if (enc == EN_K4) {
+            int v = (int)dub_siren.send + step * delta;
+            v = v < 0 ? 0 : v;
+            dub_siren_set_send(&dub_siren, (uint8_t)v);
+            dub_tape_set_siren_send((uint8_t)v);   /* the tape keeps its own copy */
+            dub_changed();
+        }
+    } else if (page == DUB_PG_SIREN2) {
+        /* sloop's SR2 page: the LFO's rate, the pitch sweep's depth, the LFO's
+         * symmetry, the level the last black key sounds at */
+        int step = gateway_fx_step(enc, delta);
+        if (enc == EN_K1) {
+            int v = (int)dub_siren.rate + step * delta;
+            dub_siren_set_rate(&dub_siren, (uint8_t)(v < 0 ? 0 : v));
+            dub_changed();
+        } else if (enc == EN_K2) {
+            int v = (int)dub_siren.depth + step * delta;
+            dub_siren_set_depth(&dub_siren, (uint8_t)(v < 0 ? 0 : v));
+            dub_changed();
+        } else if (enc == EN_K3) {
+            int v = (int)dub_siren.sym + step * delta;
+            dub_siren_set_sym(&dub_siren, (uint8_t)(v < 0 ? 0 : v));
+            dub_changed();
+        } else if (enc == EN_K4) {
             int v = (int)gateway_dub_sir_lvl + delta;
             gateway_dub_sir_lvl = (uint8_t)(v < 0 ? 0 : v > 127 ? 127 : v);
             if (gateway_dub_sir_held) dub_siren_trigger(&dub_siren, gateway_dub_sir_lvl);
-            dub_changed();
-        } else if (enc == EN_ALGO) {
-            dub_siren_set_type(&dub_siren, (uint8_t)((dub_siren.type + delta % DUB_SIR_TYPES + DUB_SIR_TYPES) % DUB_SIR_TYPES));
             dub_changed();
         }
     } else if (page == DUB_PG_DELAY) {
         int step = gateway_fx_step(enc, delta);
         if (enc == EN_K1) { dub_tape_set_ms((uint16_t)(dub_tape_ms + step * delta * 5)); dub_changed(); }
-        else if (enc == EN_K2) { dub_tape_set_fb((uint8_t)(dub_tape_fb + step * delta)); dub_changed(); }
-        else if (enc == EN_K3) { dub_tape_set_lvl((uint8_t)(dub_tape_lvl + step * delta)); dub_changed(); }
-        else if (enc == EN_ALGO) { dub_tape_set_tone((uint8_t)(dub_tape_tone + step * delta)); dub_changed(); }
+        else if (enc == EN_K2) {
+            int v = (int)dub_tape_fb + step * delta;
+            dub_tape_set_fb((uint8_t)(v < 0 ? 0 : v));
+            dub_changed();
+        }
+        else if (enc == EN_K3) {
+            int v = (int)dub_tape_lvl + step * delta;
+            dub_tape_set_lvl((uint8_t)(v < 0 ? 0 : v));
+            dub_changed();
+        }
+        else if (enc == EN_K4) {
+            int v = (int)dub_tape_tone + step * delta;
+            dub_tape_set_tone((uint8_t)(v < 0 ? 0 : v));
+            dub_changed();
+        }
     } else {
-        if (enc == EN_K1 || enc == EN_K2 || enc == EN_K3 || enc == EN_ALGO) {
+        if (enc == EN_K1 || enc == EN_K2 || enc == EN_K3 || enc == EN_K4) {
             unsigned band = enc == EN_K1 ? DUB_SUB : enc == EN_K2 ? DUB_BASS : enc == EN_K3 ? DUB_MIDS : DUB_TOPS;
             dub_band_param_t p = dub_isolator.p[band];
             if (!p.mute) {
@@ -255,7 +309,8 @@ static void gateway_dub_turn(unsigned enc, int delta)
         }
     }
 }
-/* the page's switch: SEL on DUB (module on/off) and SIREN (wave) */
+/* the page's switch: SEL on DUB (module on/off) and SIREN (the wave — K2 turns
+ * it too) */
 static void gateway_dub_sel(void)
 {
     if (gateway_dub_page == DUB_PG_MAIN) {

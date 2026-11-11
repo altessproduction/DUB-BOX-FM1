@@ -104,10 +104,14 @@ typedef struct {
     uint8_t bluetooth, bt_reserved[3];
     int16_t input_db[3];
     uint8_t mixer_controls,fade_time; /* v15: input/OUT mute bits 0..2, solo bits 3..6 */
-    /* v17: the dub modules (DUB-BOX). Appended only: v1..v16 layouts unchanged. */
+    /* v17: the dub modules (DUB-BOX). Appended only: v1..v16 layouts unchanged.
+     * v18 appends the siren's depth (the SIREN 2 page's K2) and an explicit pad
+     * byte: the record's size stays even (the int16_t members align it to 2)
+     * and every byte on flash is defined — the saved/clean memcmp sees no pad. */
     uint8_t dub_on, dub_mix, dub_gain[4], dub_mutes, dub_filter;
     uint8_t dub_ms_lo, dub_ms_hi, dub_fb, dub_tone, dub_lvl, dub_send;
     uint8_t dub_frq_lo, dub_frq_hi, dub_rate, dub_type, dub_wave, dub_sym, dub_sir_send, dub_sir_lvl;
+    uint8_t dub_depth, dub_pad;
 } gateway_settings_t;
 static void gateway_dub_load_fields(const gateway_settings_t *s);
 static void gateway_dub_save_fields(gateway_settings_t *s);
@@ -125,6 +129,7 @@ static void gateway_dub_save_fields(gateway_settings_t *s)
     s->dub_frq_lo = (uint8_t)(dub_siren.freq_hz & 255u); s->dub_frq_hi = (uint8_t)(dub_siren.freq_hz >> 8);
     s->dub_rate = dub_siren.rate; s->dub_type = dub_siren.type; s->dub_wave = dub_siren.wave;
     s->dub_sym = dub_siren.sym; s->dub_sir_send = dub_siren.send; s->dub_sir_lvl = gateway_dub_sir_lvl;
+    s->dub_depth = dub_siren.depth; s->dub_pad = 0;
 }
 static void gateway_dub_load_fields(const gateway_settings_t *s)
 {
@@ -146,6 +151,10 @@ static void gateway_dub_load_fields(const gateway_settings_t *s)
     dub_siren_set_wave(&dub_siren, s->dub_wave);
     dub_siren_set_sym(&dub_siren, s->dub_sym);
     dub_siren_set_send(&dub_siren, s->dub_sir_send);
+    dub_tape_set_siren_send(s->dub_sir_send);   /* the tape keeps its own copy of the throw */
+    if (s->version >= 18)                       /* v17 records end at dub_sir_lvl: their
+                                                 * depth is the fresh boot's 96 */
+        dub_siren_set_depth(&dub_siren, s->dub_depth);
     gateway_dub_sir_lvl = s->dub_sir_lvl > 127u ? 127u : s->dub_sir_lvl;
 }
 static gateway_settings_t gateway_saved;
@@ -154,7 +163,7 @@ static uint32_t gateway_settings_ms, gateway_settings_retry_ms;
 
 static gateway_settings_t gateway_settings(void)
 {
-    gateway_settings_t s = {{'A', 'R', 'T'}, 17, (uint8_t)gateway_zoom, gateway_muted, gateway_mode, gateway_battery_mode | (!gateway_cpu_mode<<1) | (gateway_usb_out_mode<<2),
+    gateway_settings_t s = {{'A', 'R', 'T'}, 18, (uint8_t)gateway_zoom, gateway_muted, gateway_mode, gateway_battery_mode | (!gateway_cpu_mode<<1) | (gateway_usb_out_mode<<2),
         gateway_spectrum_rate, gateway_spectrum_max, gateway_spectrum_min, gateway_spectrum_color, gateway_bt_mode,
         {gateway_codec_preference,gateway_monitor,gateway_master_wave_auto_scale | gateway_wave_color<<1},
         {gateway_mix_db[0],gateway_mix_db[1],gateway_mix_db[2]},gateway_mix_mutes | gateway_mix_solos<<3,gateway_fade_time};
@@ -405,7 +414,8 @@ void app_init(void)
             s.zoom < GATEWAY_ZOOMS && s.muted <= 1u && (s.version>=8?s.reserved<=(s.version>=11?27u:s.version>=9?3u:1u):!s.reserved) &&
             (s.version == 1 ? s.mode == 0 : s.mode < GATEWAY_MODES) &&
             (((s.version == 1 || s.version == 2) && size == 8u) ||
-             ((s.version == 3 ? size == 12u : (s.version >= 4 && s.version <= 17) && size == (s.version>=17?sizeof s:s.version>=15?24u:s.version>=12?22u:s.version>=10?20u:16u) &&
+             ((s.version == 3 ? size == 12u : (s.version >= 4 && s.version <= 18) &&
+               size == (s.version>=18?sizeof s:s.version>=17?46u:s.version>=15?24u:s.version>=12?22u:s.version>=10?20u:16u) &&
                s.bluetooth <= 1u && (s.version==4 ? !s.bt_reserved[0] && !s.bt_reserved[1] : (s.version>=16?(s.bt_reserved[0]>0 && s.bt_reserved[0]<=15):s.bt_reserved[0]<=2) && s.bt_reserved[1]<=(s.version>=12?3:2)) &&
                (s.version>=6 ? s.bt_reserved[2] < (s.version>=8?2u*GATEWAY_WAVE_COLORS:12u) : !s.bt_reserved[2])) && s.spectrum_rate < 3u &&
               (s.version>=13 ? s.spectrum_max<150u && s.spectrum_range>s.spectrum_max && s.spectrum_range<=150u : s.spectrum_max<=60u && s.spectrum_range<4u) && (s.version>=8?s.spectrum_reserved<GATEWAY_WAVE_COLORS:!s.spectrum_reserved)))) {

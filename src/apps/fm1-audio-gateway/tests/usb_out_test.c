@@ -24,7 +24,7 @@ static void settings(void){
    tap(B_EDIT);assert(!gateway_display_block);
   }
   int32_t *p=gateway_usb_pcm;gateway_usb_session=mode;tap(B_SAVE);assert(gateway_usb_pcm==p && gateway_usb_session==mode); /* no unrelated-save reset */
-  gateway_settings_t s;assert(plat_store_load(OBJ_SETTINGS,&s,sizeof s)==sizeof s && s.version==17 && s.reserved>>2==mode);
+  gateway_settings_t s;assert(plat_store_load(OBJ_SETTINGS,&s,sizeof s)==sizeof s && s.version==18 && s.reserved>>2==mode);
   app_init();app_ui_init();assert(gateway_usb_out_mode==mode && gateway_usb_out_draft==mode);
   tap(B_EDIT);turn(EN_SELECT,INT_MIN);turn(EN_SELECT,GATEWAY_SET_USB_OUT);turn(EN_ALGO,INT_MAX);tap(B_HOME);tap(B_EDIT);assert(gateway_usb_out_draft==mode);
  }
@@ -133,7 +133,7 @@ static void output_monitor(void){
  /* K3 saves/restores with the old input trims; v11 defaults OUT to unity. */
  gateway_screen=GATEWAY_MIXER;gateway_view_changed();now_ms+=200;turn(EN_K3,-1);
  int trim=gateway_mix_db[2];assert(trim==-61);now_ms+=750;app_loop();
- gateway_settings_t saved=gateway_settings();assert(saved.version==17 && sizeof saved==sizeof(gateway_settings_t) && saved.input_db[2]==trim);
+ gateway_settings_t saved=gateway_settings();assert(saved.version==18 && sizeof saved==sizeof(gateway_settings_t) && saved.input_db[2]==trim);
  app_init();app_ui_init();assert(gateway_mix_db[2]==trim);
  saved.version=11;saved.bt_reserved[0]=0;saved.spectrum_range=3;saved.input_db[0]=-60;saved.input_db[1]=-120;saved.bt_reserved[1]=PLAT_MONITOR_MASTER;
  plat_store_save(OBJ_SETTINGS,&saved,20);app_init();app_ui_init();

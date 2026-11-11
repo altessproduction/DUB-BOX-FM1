@@ -50,10 +50,12 @@ MASTER mute box control the same state.
 
 ## DUB screen and keys
 
-OCT− opens the DUB screen (DUB, SIREN, DELAY, ISO); OCT− again walks the pages
-and HOME leaves. K1–K3 (ALGORITHM where a page has a fourth) set the page's
-values; SEL is the page's switch — the module on DUB, the siren's wave on SIREN
-— and lifts every kill on ISO.
+OCT− opens the DUB screen (DUB, SIREN, SIREN 2, DELAY, ISO); OCT− again walks
+the pages and HOME leaves. K1–K4 set the page's four values, in sloop-DUB's
+order — the SIREN pages carry sloop's SIR and SR2 settings (type, wave, pitch,
+send / rate, depth, symmetry, level), DELAY's K4 is the tone. SEL is the page's
+switch — the module on DUB, the siren's wave on SIREN — and lifts every kill
+on ISO.
 
 The keyboard is the performance and works on every screen: the first four black
 keys (F♯3/G♯3/A♯3/C♯4 — the OP1–OP4 prints) toggle the ISO band kills (SUB,

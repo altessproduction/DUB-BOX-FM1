@@ -1,3 +1,30 @@
+# DUB-BOX 1.0.4
+
+The dub pages carry sloop-DUB's full settings, on the knobs they sit on there:
+
+- **The SIREN page is sloop's SIR page**: K1 the LFO type (WAIL, HILO, RAMP,
+  SWEEP, SPACE), K2 the wave (SQR, PLS, SAW, TRI, SIN — SEL still turns it),
+  K3 the pitch 220–1200 Hz, **K4 the send** — the siren's own throw into the
+  tape echo, 0 DRY. The send defaults to 48, sloop's dubby echo: the siren
+  feeds the tape from the first boot, and what it threw keeps ringing after
+  the gate opens — the tail is the tape's.
+- **A second siren page, sloop's SR2**: K1 the rate 1–16 Hz, K2 the depth
+  (the pitch sweep's amplitude, two octaves at 127), K3 the LFO's symmetry,
+  K4 the level the last black key sounds at. DEPTH joins the persisted
+  settings (v18 appends it; v17 records keep their saved values and the
+  fresh-boot depth).
+- **The fourth setting lives on K4 everywhere** — the delay's tone and the
+  isolator's TOPS band move from the ALGORITHM knob to K4, sloop's knob order
+  (KNOB 1..4 rule the page's settings). ALGORITHM is the router's FX knob
+  again.
+- The knob turns clamp in int before the cast: no more wrap-to-max jump when
+  a value at its floor turns down.
+- The browser emulator runs the same firmware; its manual documents the five
+  pages. The host suites cover the siren's own send (DRY leaves no tail, the
+  send does) and the delay's K4.
+
+Package identity `FM-1_235`, `dub-box-1.0.4.fwsc` (size noted on the release).
+
 # DUB-BOX 1.0.3
 
 The siren answers to one key and behaves like a held note:

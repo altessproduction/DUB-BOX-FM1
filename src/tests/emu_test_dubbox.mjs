@@ -77,10 +77,44 @@ emu.run(300);
 const litLift = emu.take("frame").filter((f) => f.keys !== undefined).pop();
 check(!!litLift && !!(litLift.dimKeys & (1 << 1)), "the second press lifts the kill (the key back to dim)");
 
-// the tape's tail: the module is awake now (the kill woke it) — three OCT- presses
-// walk SIREN→DELAY→ISO→DUB, K3 (role 5) opens the throw, and the released siren
-// keeps ringing in the delay even though its own voice is gone
-for (let p = 0; p < 3; p++) {
+// the SIREN page's K4 (role 6) is the siren's SEND — its own throw into the tape.
+// DRY first (the turn clamps at 0): the released siren stops clean, no tail; then
+// the send up: whatever it threw keeps ringing, the tail is the tape's
+emu.send({ type: "enc", role: 6, n: -120 });
+emu.run(200);
+emu.send({ type: "keys", mask: 1 << 25 });
+const dryGate = emu.run(400);
+emu.send({ type: "keys", mask: 0 });
+emu.run(30);
+const dryTail = emu.run(900);
+check(dryGate > 0.001, `the siren sings on the SIREN page (peak ${dryGate.toFixed(4)})`);
+check(dryTail < dryGate / 4, `SEND DRY: the released siren leaves no tail (tail ${dryTail.toFixed(4)})`);
+emu.send({ type: "enc", role: 6, n: 40 });
+emu.run(200);
+emu.send({ type: "keys", mask: 1 << 25 });
+emu.run(400);
+emu.send({ type: "keys", mask: 0 });
+emu.run(30);
+const sendTail = emu.run(900);                // the repeats, from the tape time on
+check(sendTail > 2e-4, `the siren's own SEND keeps a tail after the release (tail ${sendTail.toFixed(4)})`);
+
+// the tape's tail through the DUB throw: the walk SIREN→SIREN 2→DELAY→ISO→DUB
+// takes four OCT- presses. On DELAY, K4 (role 6) turns the tone — the page's
+// fourth knob, sloop's K4 — then K3 (role 5) on DUB opens the throw and the
+// released siren keeps ringing in the delay even though its own voice is gone
+for (let p = 0; p < 2; p++) {
+  emu.send({ type: "buttons", mask: 1 << 12 });
+  emu.run(120);
+  emu.send({ type: "buttons", mask: 0 });
+  emu.run(120);
+}
+emu.run(200);
+const fbDLY = emu.take("frame").filter((f) => f.fb).pop();
+emu.send({ type: "enc", role: 6, n: -30 });
+emu.run(300);
+const fbTONE = emu.take("frame").filter((f) => f.fb).pop();
+check(!!fbTONE && !!fbDLY && diff(fbDLY, fbTONE) > 20, `K4 turns the delay's tone on DELAY (${fbTONE ? diff(fbDLY, fbTONE) : 0} px change)`);
+for (let p = 0; p < 2; p++) {
   emu.send({ type: "buttons", mask: 1 << 12 });
   emu.run(120);
   emu.send({ type: "buttons", mask: 0 });

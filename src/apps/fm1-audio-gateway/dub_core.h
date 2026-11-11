@@ -310,7 +310,9 @@ static int32_t dub_tape_w0, dub_tape_dw;
 static int32_t dub_tape_send_g, dub_tape_sir_g;     /* the throws' gains, Q15, slewed */
 static int32_t dub_tape_col = 2000 + 50 * 240;      /* the repeats' damping, slewless */
 static int32_t dub_tape_lp;                         /* the feedback's one-pole */
-static uint8_t dub_siren_send = 0;                  /* the siren's own throw, 0 DRY */
+static uint8_t dub_siren_send = 48;                 /* the siren's own throw, 0 DRY — the tape
+                                                     * reads its own copy (dub_tape_set_siren_send);
+                                                     * the SIREN page's K4 SEND rules both */
 
 static void dub_tape_init(void)
 {
@@ -438,7 +440,9 @@ static void dub_siren_init(dub_siren_t *s)
     s->type = DUB_SIR_WAIL;
     s->wave = DUB_SIW_SQR;
     s->sym = 64;
-    s->send = 0;
+    s->send = 48;                                /* the SIREN page's K4 SEND: sloop's dubby
+                                                  * echo — the siren feeds the tape from the
+                                                  * start, its tail rings after the gate opens */
     s->active = 0;
 }
 static void dub_siren_trigger(dub_siren_t *s, uint8_t level)
@@ -464,6 +468,7 @@ static void dub_siren_set_rate(dub_siren_t *s, uint8_t rate)
     s->rate = rate > 127u ? 127u : rate;
     s->lfo_inc = dub_hz_inc(dub_siren_rate_hz(s->rate));
 }
+static void dub_siren_set_depth(dub_siren_t *s, uint8_t depth) { s->depth = depth > 127u ? 127u : depth; }
 static void dub_siren_set_type(dub_siren_t *s, uint8_t type)
 {
     s->type = type >= DUB_SIR_TYPES ? (uint8_t)(DUB_SIR_TYPES - 1u) : type;
