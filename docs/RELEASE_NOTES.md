@@ -7,12 +7,9 @@ hub](https://thefirmwarehub.com/) reads are in place:
   (`other` — a dub station, not a synth or a groovebox), the emulator as the
   hub's **Play** link, the card image (`assets/github/dubbox.png`, 240×240,
   43 KB) and the card colour (DUB-BOX orange, `#FF621A`).
-- **The package identity follows the author's stem, as the hub's releases
-  do**: altessproduction's `FM-1_234` + two digits per version component —
-  1.0.6 answers **FM-1_234010006** (ASS-ID 1.0 answers `FM-1_234010000`;
-  sloop-DUB keeps the plain `FM-1_234`). The build restores fm1-base's own
-  derivation — the v1.0.5 tree had pinned a fixed `FM-1_235` in build.py and
-  build_version.py instead.
+- **The package identity is the author's own hub ID, plain `FM-1_234`** — no
+  version digits appended; the Git tag names the release (1.0.6) and the
+  identity stays put, as asked for the hub submission.
 - **The v1.0.5 tag's CI failure fixed**: fm1.toml carried a C-style comment
   (`/* … */`) on the `web_cflags` line — TOML only takes `#`. The 1.0.5
   package itself was sound (built and published from the same source); only

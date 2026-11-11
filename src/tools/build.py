@@ -1837,20 +1837,14 @@ def main():
     prefix = CONF.get("id_prefix", "FM-1_0")
     if not re.fullmatch(r"FM-1_\d+", prefix):
         raise SystemExit(f"fm1.toml id_prefix {prefix!r}: FM-1_ and digits only (the update tools parse it)")
-    # DUB-BOX: the author's identity stem, fm1-base's rule (ASS-ID's scheme).
-    # altessproduction's stem is 234 — sloop-DUB answers the plain FM-1_234,
-    # ASS-ID appends the version's digits (1.0 -> FM-1_234010000). Every DUB-BOX
-    # release answers the stem + major, minor, patch as two digits each
-    # (1.0.6 -> FM-1_234010006); dev builds answer the stem + 00.
-    PRODUCT = prefix + "00"
+    # The package identity is the author's own hub ID, plain (FM-1_234 from
+    # fm1.toml) — no version digits appended; the tag names the release only.
+    PRODUCT = prefix
     name = STEM + ".fwsc"
     if a.release:
-        # identity: the stem + major, minor, patch as two digits each — the
-        # digits after the underscore are the firmware's own
         m = re.fullmatch(r"(\d{1,2})\.(\d{1,2})(?:\.(\d{1,2}))?(-[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)?", a.release)
         if not m:
             raise SystemExit(f"--release {a.release}: use X.Y[.Z][-suffix], up to two digits each")
-        PRODUCT = prefix + "%02d%02d%02d" % (int(m.group(1)), int(m.group(2)), int(m.group(3) or 0))
         VERSION = a.release
         name = f"{STEM}-{a.release}.fwsc"
     if a.host or a.rfm1 or a.web:
