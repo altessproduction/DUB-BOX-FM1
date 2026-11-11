@@ -7,9 +7,10 @@ hub](https://thefirmwarehub.com/) reads are in place:
   (`other` — a dub station, not a synth or a groovebox), the emulator as the
   hub's **Play** link, the card image (`assets/github/dubbox.png`, 240×240,
   43 KB) and the card colour (DUB-BOX orange, `#FF621A`).
-- **The package identity is the author's own hub ID, plain `FM-1_234`** — no
-  version digits appended; the Git tag names the release (1.0.6) and the
-  identity stays put, as asked for the hub submission.
+- **The package identity is the firmware's own hub ID, plain `FM-1_2345`** —
+  unique on the hub (checked against the catalog; sloop-DUB keeps
+  `FM-1_234`), no version digits appended; the Git tag names the release
+  (1.0.6).
 - **The v1.0.5 tag's CI failure fixed**: fm1.toml carried a C-style comment
   (`/* … */`) on the `web_cflags` line — TOML only takes `#`. The 1.0.5
   package itself was sound (built and published from the same source); only
@@ -17,8 +18,8 @@ hub](https://thefirmwarehub.com/) reads are in place:
 - The browser emulator's wasm rebuilt with the 1.0.6 label (the same code,
   emcc 7.0.0): the **Play** page on the hub runs the real 1.0.6 firmware.
 
-Package identity `FM-1_234`, `dub-box-1.0.6.fwsc` (613 178 B,
-sha256 1d59197b…1449fa).
+Package identity `FM-1_2345`, `dub-box-1.0.6.fwsc` (613 178 B,
+sha256 à remplir après le build — commit B).
 
 # DUB-BOX 1.0.5
 

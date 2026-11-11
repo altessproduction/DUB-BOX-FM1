@@ -34,13 +34,14 @@ def version_info(root, tag=None):
         if not m or len(tag) > 40:
             raise SystemExit("Release tag must be [v]MAJOR.MINOR[.PATCH][-prerelease], each number 0..99")
         version = tag.removeprefix("v")
-        # DUB-BOX answers the author's own hub ID, plain FM-1_234 — no version
+        # DUB-BOX answers its own hub ID, plain FM-1_2345 — unique on the hub
+        # (checked against the catalog; sloop-DUB keeps FM-1_234), no version
         # digits appended; the tag names the release, the identity stays put.
-        identity = "FM-1_234"
+        identity = "FM-1_2345"
         package = f"dub-box-{version}.fwsc"
     else:
         version = "DEV" + ("-" + commit[:8] if commit else "")
-        identity, package = "FM-1_234", "dub-box.fwsc"
+        identity, package = "FM-1_2345", "dub-box.fwsc"
     return dict(version=version, tag=tag, identity=identity, package=package, commit=commit)
 
 

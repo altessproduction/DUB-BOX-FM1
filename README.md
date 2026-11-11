@@ -87,8 +87,8 @@ python src/scripts/package_gateway.py
 tests: `python src/scripts/build_gateway.py --host && python src/scripts/test_gateway.py`
 — 445 checks, the dub modules included (`dub_module_test`). See
 [docs/BUILD.md](docs/BUILD.md) for the whole recipe and the release flow.
-The firmware answers the author's own hub ID, plain **FM-1_234** — no version
-digits appended; the Git tag names the release only.
+The firmware answers its own hub ID, plain **FM-1_2345** — unique on the hub
+(sloop-DUB keeps FM-1_234); the Git tag names the release only.
 
 # Licensing
 

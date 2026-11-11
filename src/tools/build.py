@@ -1837,8 +1837,9 @@ def main():
     prefix = CONF.get("id_prefix", "FM-1_0")
     if not re.fullmatch(r"FM-1_\d+", prefix):
         raise SystemExit(f"fm1.toml id_prefix {prefix!r}: FM-1_ and digits only (the update tools parse it)")
-    # The package identity is the author's own hub ID, plain (FM-1_234 from
-    # fm1.toml) — no version digits appended; the tag names the release only.
+    # The package identity is the firmware's own hub ID, plain (FM-1_2345
+    # from fm1.toml) — no version digits appended; the tag names the release
+    # only.
     PRODUCT = prefix
     name = STEM + ".fwsc"
     if a.release:

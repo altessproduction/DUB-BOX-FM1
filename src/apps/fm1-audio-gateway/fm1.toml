@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # USB audio gateway with read-only stereo waveform and meters. Playback depends on recording being enabled.
 name = "DUB-BOX"
-# The firmware answers the author's own hub ID, plain FM-1_234 — no version
-# digits appended; the Git tag names the release only.
-id_prefix = "FM-1_234"
+# The firmware's own hub ID, plain FM-1_2345 — unique on the hub (sloop-DUB
+# keeps FM-1_234), no version digits appended; the Git tag names the release.
+id_prefix = "FM-1_2345"
 bootloader = "../../boot/m-bootloader/fm1-uboot.boot"
 bootloader_sha256 = "cedc9c17648bdeecda5c8d0ffffe2211849f8a36ab615fe49d6cc46d249baf44"
 usb_manufacturer = "altessproduction"
