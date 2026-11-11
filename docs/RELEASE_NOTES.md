@@ -17,8 +17,8 @@ hub](https://thefirmwarehub.com/) reads are in place:
 - The browser emulator's wasm rebuilt with the 1.0.6 label (the same code,
   emcc 7.0.0): the **Play** page on the hub runs the real 1.0.6 firmware.
 
-Package identity `FM-1_234010006`, `dub-box-1.0.6.fwsc` (613 178 B,
-sha256 d0ad1087…714bd).
+Package identity `FM-1_234`, `dub-box-1.0.6.fwsc` (613 178 B,
+sha256 1d59197b…1449fa).
 
 # DUB-BOX 1.0.5
 
