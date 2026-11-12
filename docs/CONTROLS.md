@@ -73,9 +73,9 @@ detent a wheel notch.
 The keyboard is the performance and works on every screen: the first four black
 keys (F♯3/G♯3/A♯3/C♯4 — the OP1–OP4 prints) toggle the ISO band kills (SUB,
 BASS, MIDS, TOPS; a key's LED is lit while its band is down), the eighth black
-key (A♯4, the MONO print) turns the DUB module on and off — its LED is lit
+key (A♯4, the GLO print) turns the DUB module on and off — its LED is lit
 while the module is on, and the module is on at boot —, the ninth (C♯5, the
-POLY print) and tenth (D♯5) black keys arm the USB in and the BT in sends into
+MONO print) and tenth (D♯5) black keys arm the USB in and the BT in sends into
 the delay, each LED lit while its send is armed (both arms are on at boot, the
 send levels at 0), and the last black key (F♯5) is the siren's gate: hold it
 and the siren sings at its LEVEL, release it and the siren stops — what it

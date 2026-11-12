@@ -11,11 +11,11 @@ The sources' own sends, and the dub module on the eighth black key:
   Bluetooth mix joins it; the BT throw is the mix minus that USB in, taken
   before the isolator and the filter touch the bus. A send at 0 is DRY; both
   send **levels are 0 at boot**.
-- **The eighth black key (A♯4, the MONO print) turns the DUB module on and
+- **The eighth black key (A♯4, the GLO print) turns the DUB module on and
   off** — its LED is lit while the module is on, and **the module is on at
   boot**. The old switch is gone: SEL on the DUB page does nothing now (SEL
   keeps the siren's wave on SIREN and the kills' lift on ISO).
-- **The ninth (C♯5, the POLY print) and tenth (D♯5) black keys arm the USB in
+- **The ninth (C♯5, the MONO print) and tenth (D♯5) black keys arm the USB in
   and the BT in sends**, each LED lit while its send is armed — **both arms are
   on at boot**, so the send delay is active with its send levels at 0.
 - The tape's room is held only while a send is connected or the siren sings

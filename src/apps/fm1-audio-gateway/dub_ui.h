@@ -21,9 +21,9 @@ static uint8_t gateway_dub_sir_key;                /* the key's hold — the gat
 static uint32_t gateway_dub_sir_released_ms;       /* when the gate opened: the tape's tail keeps its room past it */
 /* the keyboard's dub keys, every screen: the four first black keys (F#3 G#3 A#3
  * C#4, the OP1..OP4 prints) kill the ISO bands — SUB BASS MIDS TOPS, their LED
- * lit while killed — the eighth black key (A#4, the MONO print) is the module's
+ * lit while killed — the eighth black key (A#4, the GLO print) is the module's
  * on/off, its LED lit while DUB is on (and DUB is on at boot), the ninth and
- * tenth (C#5, the POLY print, and D#5, no print) arm the USB in and the BT in
+ * tenth (C#5, the MONO print, and D#5, no print) arm the USB in and the BT in
  * throws into the tape, lit while armed (armed at boot, the levels at 0), and
  * the last black key (F#5, no print) is the siren's gate: held it sings,
  * released it stops, the tape's tail rings on. A kill wakes the module (DUB ON)

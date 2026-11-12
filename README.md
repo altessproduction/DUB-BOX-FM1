@@ -35,9 +35,9 @@ own page set, each page's four settings on K1–K4:
 **The keys are the performance**, on every screen, no page needed: the first
 four black keys (F♯3 G♯3 A♯3 C♯4 — the OP1–OP4 prints) toggle the ISO band
 kills — SUB, BASS, MIDS, TOPS, each key's LED lit while its band is down — the
-eighth black key (A♯4, the MONO print) turns the DUB module on and off, its
+eighth black key (A♯4, the GLO print) turns the DUB module on and off, its
 LED lit while the module is on (the module is on at boot), the ninth and tenth
-(C♯5, the POLY print, and D♯5) arm the USB in and BT in sends into the delay,
+(C♯5, the MONO print, and D♯5) arm the USB in and BT in sends into the delay,
 each LED lit while armed (both arms on at boot, the levels at 0), and the last
 black key (F♯5) is the siren's gate: hold it and it sings at its LEVEL,
 release it and it stops — what it threw into the tape keeps ringing, the tail
