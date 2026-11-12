@@ -1,3 +1,25 @@
+# DUB-BOX 1.0.8
+
+The newer FM-1 units work — their settings persist and their updates install:
+
+- **The newer units' flash chip (JEDEC B3 60 14) is accepted at boot** — until
+  now the firmware checked the part against the stock Puya only (85 60 14) and
+  anything else booted with `flash_ok` clear: the settings, the autosave and
+  the M-UPGRADE staging stayed in RAM (the hub listing's warning, "saves to RAM
+  only, update may fail"). The boot check takes both 1 MiB parts now; the
+  storage, the OTA and the loader run the same generic SPI NOR commands on
+  either part, so nothing else moves — settings land in the flash and an
+  update stages, installs and resumes like on the stock units.
+- **The rescue tool accepts the newer part too** (`fm1_rescue.py` refused it
+  with "this is not the FM-1's chip and flash"; it now takes 856014 or b36014),
+  and the hwtest example names both parts. A part that ignores the erase
+  suspend (75h) keeps the sliced erase's own fallback — the window waits the
+  erase out in one hold (fm1_flash_slice.h), as the stock part never needs it.
+- The dub pages and the emulator are the 1.0.7 build's, unchanged.
+
+Package identity `FM-1_2345`, `dub-box-1.0.8.fwsc` (613 178 B,
+sha256 739b734d…748400).
+
 # DUB-BOX 1.0.7
 
 The sources' own sends, and the dub module on the eighth black key:

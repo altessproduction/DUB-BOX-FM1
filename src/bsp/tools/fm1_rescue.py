@@ -22,7 +22,8 @@ FM-1-transporter, docs/PROTOCOL.md), which were verified on hardware:
 
   1. JieLi's flash loader (wl82loader.bin, from github.com/kagaimiq/jl-uboot-tool, downloaded
      and checked against its hash) is loaded into RAM and started;
-  2. the chip key must be 980F and the flash 856014 (1 MiB), or nothing is done;
+  2. the chip key must be 980F and the flash one of the two 1 MiB parts the units carry (856014, the stock
+     Puya; b36014, the newer units'), or nothing is done;
   3. the whole flash is read and saved as a backup before anything else;
   4. the package whose head [0, 0x4000) equals the FM-1's is chosen (none: nothing is written);
   5. only 4 KiB sectors in [0x4000, end of its app area) that differ from it are written (V15's area
@@ -249,8 +250,9 @@ def rescue(dev, packages, loader, write, backup_dir, say=print, confirm=None):
     dev.start_loader(loader)
     key, typ, fid = dev.chip()
     say(f"  chip key {key:04X}, flash type {typ}, id {fid:06X}")
-    if (key, typ, fid) != (0x980F, 3, 0x856014):
-        raise Fail("this is not the FM-1's chip and flash (expected key 980F, type 3, id 856014); nothing written")
+    if (key, typ) != (0x980F, 3) or fid not in (0x856014, 0xB36014):
+        raise Fail("this is not the FM-1's chip and flash (expected key 980F, type 3, id 856014 or b36014 "
+                   "- the two 1 MiB parts the units carry); nothing written")
     say("  reading the whole flash ...")
     t0 = time.time()
     now = dev.read(0, FLASH_SIZE)

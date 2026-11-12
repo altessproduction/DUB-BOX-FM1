@@ -61,7 +61,7 @@ DUB-BOX runs on the [m-bootloader](https://github.com/jvitkauskas/m-bootloader)
 
 1. Back your unit up first — a settings export is not a firmware backup
    ([MvaveFM1Unbricker](https://github.com/Quixotic7/MvaveFM1Unbricker)).
-2. Download [`dub-box-1.0.7.fwsc`](docs/firmware/dub-box-1.0.7.fwsc) (or the
+2. Download [`dub-box-1.0.8.fwsc`](docs/firmware/dub-box-1.0.8.fwsc) (or the
    release asset) and check its SHA-256 (`docs/firmware/SHA256SUMS`).
 3. Turn the FM-1 off, on while holding **REC**.
 4. Flash with M-Flasher — bootloader replacement **disabled**, settings erase

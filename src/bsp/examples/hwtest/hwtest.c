@@ -388,7 +388,11 @@ static void app_main(void)
     uint32_t knob_w = ~0u, batt_w = ~0u;            /* the bars' widths on the screen (~0: not drawn yet) */
     {
         uint32_t f = irq_save();
-        flash_ok = FL_FAR(fl_jedec_ram)() == 0x856014u;   /* the 1 MiB part every FM-1 has */
+        {                                               /* the 1 MiB part every FM-1 has: the stock Puya (85 60 14)
+                                                         * or the newer units' b3 60 14 */
+            uint32_t fid = FL_FAR(fl_jedec_ram)();
+            flash_ok = fid == 0x856014u || fid == 0xB36014u;
+        }
         irq_restore(f);
         if (flash_ok)
             ota_boot_cleanup();                 /* what an interrupted update left behind */

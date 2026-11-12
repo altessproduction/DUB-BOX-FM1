@@ -1416,7 +1416,13 @@ static void fm1_main(void)
                                                      * VDDIO 3.2 V, WiFi's regulator automatic (fm1_sys.h) */
         fm1_clock_read(clock_boot);
         clock_fix = (int8_t)fm1_clock_stock();      /* the stock 360 MHz, whichever bootloader started us (fm1_clock.h) */
-        flash_ok = FL_FAR(fl_jedec_ram)() == 0x856014u;   /* the expected 1 MiB part, else RAM only */
+        {                                               /* the 1 MiB parts the layout assumes: the stock Puya
+                                                         * P25Q80H (85 60 14) and the newer units' part (b3 60 14,
+                                                         * the same design from another fab — the hub's flash
+                                                         * reports); anything else: RAM only */
+            uint32_t fid = FL_FAR(fl_jedec_ram)();
+            flash_ok = fid == 0x856014u || fid == 0xB36014u;
+        }
 #if FM1B_WIFI || FM1B_BLE || defined(FELUCCA_USB_NAME_FN)
         if (flash_ok)
             FL_FAR(fl_uid_ram)(flash_uid);
