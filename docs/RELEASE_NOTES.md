@@ -1,3 +1,37 @@
+# DUB-BOX 1.0.7
+
+The sources' own sends, and the dub module on the eighth black key:
+
+- **The DUB page's K1–K4 are pots**, the same 300-degree course (twenty
+  detents, one share a detent however fast) as the other DUB pages: the filter's
+  whole lowpass–flat–highpass course, the isolator's mix, and the two new
+  throws.
+- **K3 is the USB in's send into the tape echo, K4 the BT in's** — two throws
+  the tape reads separately. The render hands the USB in bus over before the
+  Bluetooth mix joins it; the BT throw is the mix minus that USB in, taken
+  before the isolator and the filter touch the bus. A send at 0 is DRY; both
+  send **levels are 0 at boot**.
+- **The eighth black key (A♯4, the MONO print) turns the DUB module on and
+  off** — its LED is lit while the module is on, and **the module is on at
+  boot**. The old switch is gone: SEL on the DUB page does nothing now (SEL
+  keeps the siren's wave on SIREN and the kills' lift on ISO).
+- **The ninth (C♯5, the POLY print) and tenth (D♯5) black keys arm the USB in
+  and the BT in sends**, each LED lit while its send is armed — **both arms are
+  on at boot**, so the send delay is active with its send levels at 0.
+- The tape's room is held only while a send is connected or the siren sings
+  (its tail keeps the room a few seconds past the gate) — at rest the work area
+  stays whole for the waveform and spectrum captures. The status bar's DUB
+  badge is gone: with the module on at boot it would have eaten the CPU and
+  battery text for good.
+- Settings carry **v19** (the BT throw's level and the two arms appended to the
+  v18 record; v17/v18 records load unchanged, their sends defaulting to armed
+  at 0). The emulator's page parses the 26-byte readback and the DUB page's
+  caps sit at the firmware's real values like the other pages'; the wasm
+  rebuilt (emcc 7.0.0).
+
+Package identity `FM-1_2345`, `dub-box-1.0.7.fwsc` (613 178 B,
+sha256 82079b18…861148d).
+
 # DUB-BOX 1.0.6
 
 The firmware-hub submission release — the files the [firmware
