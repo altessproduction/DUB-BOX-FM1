@@ -30,7 +30,7 @@ The sources' own sends, and the dub module on the eighth black key:
   rebuilt (emcc 7.0.0).
 
 Package identity `FM-1_2345`, `dub-box-1.0.7.fwsc` (613 178 B,
-sha256 82079b18…861148d).
+sha256 e56e676f…6e0f0).
 
 # DUB-BOX 1.0.6
 
