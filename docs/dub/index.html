@@ -329,9 +329,11 @@ body.compact #manual { display: none; }
 DUB-BOX est la carte son USB et le récepteur Bluetooth du FM-1 (le routeur audio), avec les modules dub de
 sloop-DUB portés dessus : la sirène, le tape echo, le filtre DJ et l'isolateur sur leurs pages.
 <b>OCT−</b> ouvre l'écran DUB : cinq pages, <span class="kn">DUB · SIREN · SIREN 2 · DELAY · ISO</span> — les pages de sloop-DUB, chaque page règle ses quatre réglages sur <span class="kn">K1–K4</span>.
-Sur <b>SIREN, SIREN 2, DELAY et ISO</b>, les K1–K4 continus sont des <b>potentiomètres</b>, comme ceux de sloop-DUB : tout le parcours tient en un peu moins d'un tour (<b>300°</b>, vingt crantages), un crantage balaye sa part de la plage — à toute vitesse, sans accélération — et le pointeur du bouton montre la valeur réelle du firmware (glissez vers le haut/bas, ou tournez autour du bouton ; la molette vaut un crantage). Le type et la forme de la sirène restent pas à pas.
+Sur <b>DUB, SIREN, SIREN 2, DELAY et ISO</b>, les K1–K4 continus sont des <b>potentiomètres</b>, comme ceux de sloop-DUB : tout le parcours tient en un peu moins d'un tour (<b>300°</b>, vingt crantages), un crantage balaye sa part de la plage — à toute vitesse, sans accélération — et le pointeur du bouton montre la valeur réelle du firmware (glissez vers le haut/bas, ou tournez autour du bouton ; la molette vaut un crantage). Le type et la forme de la sirène restent pas à pas.
 <b>PLAY</b> rend le master muet — le drop. Les <b>touches noires</b> sont la performance, depuis n'importe quel écran :
-les quatre premières tuent les bandes de l'ISO, la dernière est la <b>gate de la sirène</b> — tenue, elle chante ;
+les quatre premières tuent les bandes de l'ISO, la <b>huitième</b> (A♯4, la gravure MONO) allume et éteint le <b>module DUB</b> —
+allumé au démarrage, sa LED suit —, la <b>neuvième</b> et la <b>dixième</b> (C♯5, la gravure POLY, et D♯5) arment les <b>sends du delay</b>
+de l'USB in et du BT in — armés au démarrage, leurs niveaux à 0 —, la dernière est la <b>gate de la sirène</b> — tenue, elle chante ;
 relâchée, elle s'arrête, et sa queue continue de sonner dans le delay.
 Les réglages survivent au rechargement de la page.</p>
 
@@ -339,7 +341,7 @@ Les réglages survivent au rechargement de la page.</p>
 <div class="card wide">
 <h3>LES CINQ PAGES DUB — OCT− POUR ENTRER</h3>
 <ul>
-<li><b><span class="chip">DUB</span></b> — <span class="kn">K1</span> le filtre DJ (bipolaire : passe-bas à gauche, passe-haut à droite, <b>FLAT</b> au crantage central, les balayages glissent), <span class="kn">K2</span> le mix, <span class="kn">K3</span> le <i>throw</i> vers le tape echo. <kbd>SEL</kbd> change de module.</li>
+<li><b><span class="chip">DUB</span></b> — <span class="kn">K1</span> le filtre DJ (bipolaire : passe-bas à gauche, passe-haut à droite, <b>FLAT</b> au centre, les balayages glissent), <span class="kn">K2</span> le mix, <span class="kn">K3</span> le <i>send</i> de l'<b>USB in</b> vers le tape echo, <span class="kn">K4</span> celui du <b>BT in</b> — deux envois traités séparément (0 = DRY), armés par les touches noires <b>9</b> et <b>10</b>. La <b>8e touche noire</b> allume et éteint le module, sa LED suit — allumé au démarrage.</li>
 <li><b><span class="chip">SIREN</span></b> — comme la page <b>SIR</b> de sloop-DUB : <span class="kn">K1</span> le type de LFO (WAIL, HILO, RAMP, SWEEP, SPACE), <span class="kn">K2</span> la forme (SQR, PLS, SAW, TRI, SIN), <span class="kn">K3</span> la hauteur 220–1200 Hz, <span class="kn">K4</span> le <i>send</i> — l'envoi de la sirène dans le tape echo (0 = DRY ; c'est lui qui laisse sa queue sonner après le relâchement). La <b>dernière touche noire</b> est sa gate : tenue elle chante, relâchée elle s'arrête — depuis n'importe quel écran. <kbd>REC</kbd> n'a rien à voir avec elle, <kbd>SEL</kbd> tourne aussi la forme.</li>
 <li><b><span class="chip">SIREN 2</span></b> — comme la page <b>SR2</b> de sloop-DUB : <span class="kn">K1</span> la vitesse 1–16 Hz, <span class="kn">K2</span> la profondeur (l'amplitude du balayage de hauteur, deux octaves à 127), <span class="kn">K3</span> la symétrie du LFO, <span class="kn">K4</span> le niveau — ce que la dernière touche noire fait sonner.</li>
 <li><b><span class="chip">DELAY</span></b> — le tape echo : <span class="kn">K1</span> le temps 40–740 ms, <span class="kn">K2</span> le feedback, <span class="kn">K3</span> le niveau, <span class="kn">K4</span> le ton (l'amortissement des répétitions). Le temps glisse comme une bande qui satellite, les têtes ondulent (wow 0,7 Hz, flutter 6,3 Hz), les répétitions passent dans l'amortissement et une saturation douce qui chauffe passage après passage.</li>
@@ -491,6 +493,7 @@ function knobDrag(cap, turn) {
    up/down, or turn around the knob, a detent a notch of either; the lists (the
    siren's TYPE and WAVE) stay encoders, a step a detent. */
 const DUB_POT = {          // the DUB pages' continuous K1..K4: [min, span] in the firmware's units
+    0: [[0, 127], [0, 127], [0, 127], [0, 127]],     // DUB: FILTER MIX USB SEND BT SEND
     1: [null, null, [220, 980], [0, 127]],           // SIREN: TYPE WAVE lists — PITCH SEND pots
     2: [[0, 127], [0, 127], [0, 127], [0, 127]],     // SIREN 2: RATE DEPTH SYM LEVEL
     3: [[40, 700], [0, 127], [0, 127], [0, 127]],    // DELAY: TIME FEEDBK LEVEL TONE
@@ -511,21 +514,23 @@ function deviceOffset(el, ev) {            // the pointer's offset from el's cen
     if (!det) return { x: sx, y: sy };
     return { x: (sx * m.d - sy * m.c) / det, y: (sy * m.a - sx * m.b) / det };
 }
-function parseDub(b) {                     // app.c web_dub's 20 bytes, little-endian, packed
-    const v = new DataView(b.buffer, b.byteOffset, 20);
+function parseDub(b) {                     // app.c web_dub's 26 bytes, little-endian, packed
+    const v = new DataView(b.buffer, b.byteOffset, 26);
     const i8 = (o) => (b[o] & 0x80 ? b[o] - 256 : b[o]);
     return { page: b[0], type: b[1], wave: b[2], freq: v.getUint16(3, true), send: b[5],
              rate: b[6], depth: b[7], sym: b[8], sirlvl: b[9], ms: v.getUint16(10, true),
-             fb: b[12], lvl: b[13], tone: b[14], gain: [i8(15), i8(16), i8(17), i8(18)], mute: b[19] };
+             fb: b[12], lvl: b[13], tone: b[14], gain: [i8(15), i8(16), i8(17), i8(18)], mute: b[19],
+             filter: b[20], mix: b[21], usend: b[22], bsend: b[23], state: b[24], screen: b[25] };
 }
 function potTick() {                       // every frame: the pots sit at the firmware's values
-    const page = dubState ? dubState.page : -1;
+    const page = dubState ? dubState.page : -1, live = !!dubState && dubState.screen === 4;
     for (const role of Object.keys(potCap)) {
-        const { cap } = potCap[role], p = DUB_POT[page], k = role - ENC.KNOB1;
+        const { cap } = potCap[role], p = live ? DUB_POT[page] : null, k = role - ENC.KNOB1;
         let ok = false;
         if (p && p[k] && dubState) {
             const [min, span] = p[k];
-            const v = page === 1 ? [null, null, dubState.freq, dubState.send][k]
+            const v = page === 0 ? [dubState.filter, dubState.mix, dubState.usend, dubState.bsend][k]
+                    : page === 1 ? [null, null, dubState.freq, dubState.send][k]
                     : page === 2 ? [dubState.rate, dubState.depth, dubState.sym, dubState.sirlvl][k]
                     : page === 3 ? [dubState.ms, dubState.fb, dubState.lvl, dubState.tone][k]
                     : [dubState.gain[0], dubState.gain[1], dubState.gain[2], dubState.gain[3]][k];
@@ -535,7 +540,7 @@ function potTick() {                       // every frame: the pots sit at the f
             cap.style.setProperty('--fill', (POT_SWEEP * t) + 'deg');
             ok = true;
         }
-        if (!ok) cap.classList.remove('pot');   // a list, the DUB page, or no state yet: the encoder's free spin
+        if (!ok) cap.classList.remove('pot');   // not on the DUB screen, a list, or no state yet: the encoder's free spin
     }
 }
 function potDrag(role, cap) {
@@ -544,7 +549,7 @@ function potDrag(role, cap) {
     let last = null, acc = 0, touch = false, lastAng = null, lastR = 0;
     const isPot = () => {
         const p = DUB_POT[dubState ? dubState.page : -1];
-        return !!(p && p[role - ENC.KNOB1]);
+        return !!(dubState && dubState.screen === 4 && p && p[role - ENC.KNOB1]);
     };
     const turn = (n) => {                  // n detents: the pot's own, or a list's step
         if (!n) return;

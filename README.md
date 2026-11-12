@@ -26,7 +26,7 @@ own page set, each page's four settings on K1–K4:
 
 | Page | What it does |
 | --- | --- |
-| **DUB** | K1 the DJ filter (bipolar: lowpass left, highpass right, FLAT at the center detent, sweeps glide), K2 the mix, K3 the throw into the tape echo. SEL switches the module. |
+| **DUB** | K1 the DJ filter (bipolar: lowpass left, highpass right, FLAT at the center detent, sweeps glide), K2 the mix, K3 the **USB in's send** into the tape echo, K4 the **BT in's** — two throws read separately, 0 DRY at boot. The **eighth black key** switches the module. |
 | **SIREN** | K1 the LFO type (WAIL, HILO, RAMP, SWEEP, SPACE), K2 the wave (SQR, PLS, SAW, TRI, SIN), K3 pitch 220–1200 Hz, K4 the send into the tape echo (0 DRY — the siren's tail rings there). The **last black key** is its gate: hold it to sing, release it to stop (the delay tail rings on) — from any screen. |
 | **SIREN 2** | K1 rate 1–16 Hz, K2 depth (the pitch sweep, two octaves at 127), K3 the LFO's symmetry, K4 the level the last black key sounds at. |
 | **DELAY** | The tape echo: K1 time 40–740 ms, K2 feedback, K3 level, K4 tone (the repeats' damping). The time glides like a tape's sag, the head wanders (wow 0.7 Hz, flutter 6.3 Hz), the repeats pass the damping and a soft clip, warming pass by pass. |
@@ -34,15 +34,19 @@ own page set, each page's four settings on K1–K4:
 
 **The keys are the performance**, on every screen, no page needed: the first
 four black keys (F♯3 G♯3 A♯3 C♯4 — the OP1–OP4 prints) toggle the ISO band
-kills — SUB, BASS, MIDS, TOPS, each key's LED lit while its band is down — and
-the last black key (F♯5) is the siren's gate: hold it and it sings at its
-LEVEL, release it and it stops — what it threw into the tape keeps ringing,
-the tail is the delay's. All four kills together is the total kill, SEL on
-the ISO page lifts them, and a kill wakes the module (DUB ON) if it was off.
-The mixer's white mute/solo keys (F3–B3/F4–B4) keep their role on the mixer.
+kills — SUB, BASS, MIDS, TOPS, each key's LED lit while its band is down — the
+eighth black key (A♯4, the MONO print) turns the DUB module on and off, its
+LED lit while the module is on (the module is on at boot), the ninth and tenth
+(C♯5, the POLY print, and D♯5) arm the USB in and BT in sends into the delay,
+each LED lit while armed (both arms on at boot, the levels at 0), and the last
+black key (F♯5) is the siren's gate: hold it and it sings at its LEVEL,
+release it and it stops — what it threw into the tape keeps ringing, the tail
+is the delay's. All four kills together is the total kill, SEL on the ISO page
+lifts them, and a kill wakes the module (DUB ON) if it was off. The mixer's
+white mute/solo keys (F3–B3/F4–B4) keep their role on the mixer.
 
 **PLAY** mutes the master — the drop. Everything persists across boots
-(settings v18), and the dub chain rests bit-transparent when off.
+(settings v19), and the dub chain rests bit-transparent when off.
 
 Under it, the router runs whole: USB audio in/out (UAC1, 44.1 kHz, asynchronous
 feedback), Bluetooth receiver with SBC, AAC, aptX and aptX HD on its own

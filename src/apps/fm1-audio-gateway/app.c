@@ -107,11 +107,15 @@ typedef struct {
     /* v17: the dub modules (DUB-BOX). Appended only: v1..v16 layouts unchanged.
      * v18 appends the siren's depth (the SIREN 2 page's K2) and an explicit pad
      * byte: the record's size stays even (the int16_t members align it to 2)
-     * and every byte on flash is defined — the saved/clean memcmp sees no pad. */
+     * and every byte on flash is defined — the saved/clean memcmp sees no pad.
+     * v19 appends the BT in throw's level and the two sends' arms (bit 0 the
+     * USB in, bit 1 the BT in, both on at boot), two pad bytes keeping the
+     * record even. */
     uint8_t dub_on, dub_mix, dub_gain[4], dub_mutes, dub_filter;
     uint8_t dub_ms_lo, dub_ms_hi, dub_fb, dub_tone, dub_lvl, dub_send;
     uint8_t dub_frq_lo, dub_frq_hi, dub_rate, dub_type, dub_wave, dub_sym, dub_sir_send, dub_sir_lvl;
     uint8_t dub_depth, dub_pad;
+    uint8_t dub_bt_send, dub_arms, dub_pad2[2];
 } gateway_settings_t;
 static void gateway_dub_load_fields(const gateway_settings_t *s);
 static void gateway_dub_save_fields(gateway_settings_t *s);
@@ -130,6 +134,9 @@ static void gateway_dub_save_fields(gateway_settings_t *s)
     s->dub_rate = dub_siren.rate; s->dub_type = dub_siren.type; s->dub_wave = dub_siren.wave;
     s->dub_sym = dub_siren.sym; s->dub_sir_send = dub_siren.send; s->dub_sir_lvl = gateway_dub_sir_lvl;
     s->dub_depth = dub_siren.depth; s->dub_pad = 0;
+    s->dub_bt_send = dub_send_bt;
+    s->dub_arms = (uint8_t)((dub_send_usb_on ? 1u : 0u) | (dub_send_bt_on ? 2u : 0u));
+    s->dub_pad2[0] = s->dub_pad2[1] = 0;
 }
 static void gateway_dub_load_fields(const gateway_settings_t *s)
 {
@@ -152,9 +159,16 @@ static void gateway_dub_load_fields(const gateway_settings_t *s)
     dub_siren_set_sym(&dub_siren, s->dub_sym);
     dub_siren_set_send(&dub_siren, s->dub_sir_send);
     dub_tape_set_siren_send(s->dub_sir_send);   /* the tape keeps its own copy of the throw */
-    if (s->version >= 18)                       /* v17 records end at dub_sir_lvl: their
-                                                 * depth is the fresh boot's 96 */
+    if (s->version >= 18) {                     /* v17 records end at dub_sir_lvl: their
+                                                 * depth is the fresh boot's 96, the BT
+                                                 * throw 0 and both sends' arms on */
         dub_siren_set_depth(&dub_siren, s->dub_depth);
+        if (s->version >= 19) {
+            dub_tape_set_bt_send(s->dub_bt_send);
+            dub_send_usb_on = s->dub_arms & 1u;
+            dub_send_bt_on = (s->dub_arms >> 1) & 1u;
+        }
+    }
     gateway_dub_sir_lvl = s->dub_sir_lvl > 127u ? 127u : s->dub_sir_lvl;
 }
 static gateway_settings_t gateway_saved;
@@ -163,7 +177,7 @@ static uint32_t gateway_settings_ms, gateway_settings_retry_ms;
 
 static gateway_settings_t gateway_settings(void)
 {
-    gateway_settings_t s = {{'A', 'R', 'T'}, 18, (uint8_t)gateway_zoom, gateway_muted, gateway_mode, gateway_battery_mode | (!gateway_cpu_mode<<1) | (gateway_usb_out_mode<<2),
+    gateway_settings_t s = {{'A', 'R', 'T'}, 19, (uint8_t)gateway_zoom, gateway_muted, gateway_mode, gateway_battery_mode | (!gateway_cpu_mode<<1) | (gateway_usb_out_mode<<2),
         gateway_spectrum_rate, gateway_spectrum_max, gateway_spectrum_min, gateway_spectrum_color, gateway_bt_mode,
         {gateway_codec_preference,gateway_monitor,gateway_master_wave_auto_scale | gateway_wave_color<<1},
         {gateway_mix_db[0],gateway_mix_db[1],gateway_mix_db[2]},gateway_mix_mutes | gateway_mix_solos<<3,gateway_fade_time};
@@ -230,9 +244,6 @@ static void gateway_lights(void)
     }
     if(gateway_screen==GATEWAY_DUB){
         active|=1u<<B_OCTDN;
-        if(gateway_dub_page==DUB_PG_MAIN){
-            if(dub_on)active|=1u<<B_SEL; else dim|=1u<<B_SEL;
-        }
         if(gateway_dub_page==DUB_PG_SIREN)dim|=1u<<B_SEL;
     }
     if (gateway_bt_mode && !gateway_fx_dialog && !gateway_codec_dialog) {
@@ -245,11 +256,16 @@ static void gateway_lights(void)
         if(gateway_mixer_muted(g))keys|=m;else dim_keys|=m;
         if(gateway_mix_solos&(1u<<g))keys|=s;else dim_keys|=s;
     }
-    /* the black keys' state, every screen: a kill's LED lit while its band is down */
+    /* the black keys' state, every screen: a kill's LED lit while its band is down,
+     * the 8th black key's lit while the module is on (on at boot), the 9th and 10th
+     * lit while their send's arm is down (the USB in, the BT in — on at boot) */
     for(unsigned g=0;g<DUB_BANDS;g++){
         uint32_t m=1u<<gateway_dub_kill_keys[g];
         if(dub_isolator.p[g].mute)keys|=m;else dim_keys|=m;
     }
+    if(dub_on)keys|=1u<<GATEWAY_DUB_KEY;else dim_keys|=1u<<GATEWAY_DUB_KEY;
+    if(dub_send_usb_on)keys|=1u<<GATEWAY_USB_SEND_KEY;else dim_keys|=1u<<GATEWAY_USB_SEND_KEY;
+    if(dub_send_bt_on)keys|=1u<<GATEWAY_BT_SEND_KEY;else dim_keys|=1u<<GATEWAY_BT_SEND_KEY;
     if(gateway_dub_sir_held)keys|=1u<<GATEWAY_SIR_KEY;else dim_keys|=1u<<GATEWAY_SIR_KEY;
     plat_lights((gateway_muted ? 1u << B_PLAY : LED_PLAY_GREEN) | active,
             keys, dim, dim_keys, 1);
@@ -414,8 +430,8 @@ void app_init(void)
             s.zoom < GATEWAY_ZOOMS && s.muted <= 1u && (s.version>=8?s.reserved<=(s.version>=11?27u:s.version>=9?3u:1u):!s.reserved) &&
             (s.version == 1 ? s.mode == 0 : s.mode < GATEWAY_MODES) &&
             (((s.version == 1 || s.version == 2) && size == 8u) ||
-             ((s.version == 3 ? size == 12u : (s.version >= 4 && s.version <= 18) &&
-               size == (s.version>=18?sizeof s:s.version>=17?46u:s.version>=15?24u:s.version>=12?22u:s.version>=10?20u:16u) &&
+             ((s.version == 3 ? size == 12u : (s.version >= 4 && s.version <= 19) &&
+               size == (s.version>=19?sizeof s:s.version>=18?48u:s.version>=17?46u:s.version>=15?24u:s.version>=12?22u:s.version>=10?20u:16u) &&
                s.bluetooth <= 1u && (s.version==4 ? !s.bt_reserved[0] && !s.bt_reserved[1] : (s.version>=16?(s.bt_reserved[0]>0 && s.bt_reserved[0]<=15):s.bt_reserved[0]<=2) && s.bt_reserved[1]<=(s.version>=12?3:2)) &&
                (s.version>=6 ? s.bt_reserved[2] < (s.version>=8?2u*GATEWAY_WAVE_COLORS:12u) : !s.bt_reserved[2])) && s.spectrum_rate < 3u &&
               (s.version>=13 ? s.spectrum_max<150u && s.spectrum_range>s.spectrum_max && s.spectrum_range<=150u : s.spectrum_max<=60u && s.spectrum_range<4u) && (s.version>=8?s.spectrum_reserved<GATEWAY_WAVE_COLORS:!s.spectrum_reserved)))) {
@@ -572,8 +588,9 @@ void app_input_only(void)
         gateway_lights();
         for(i=0;i<NE;i++)(void)plat_enc((int)i);gateway_buttons=buttons;return;
     }
-    /* DUB-BOX: SEL on the DUB screen is the page's switch (the module, the
-     * wave, the kills' lift) — the siren is the last black key's alone. */
+    /* DUB-BOX: SEL on the DUB screen is the page's switch (the wave, the kills'
+     * lift) — the module's on/off is the 8th black key's, the sends' arms the
+     * 9th and 10th's; the siren is the last black key's alone. */
     if (gateway_screen == GATEWAY_DUB && (pressed & (1u << B_SEL)))
         gateway_dub_sel();
     if (pressed & (1u << B_EDIT)) {
@@ -655,6 +672,12 @@ void app_input_only(void)
     }
     if(gateway_ui_ready)for(unsigned g=0;g<DUB_BANDS;g++)   /* the black keys kill, from any screen */
         if(key_pressed&(1u<<gateway_dub_kill_keys[g]))gateway_dub_kill(g);
+    if(gateway_ui_ready){                    /* the module on the 8th black key, the sends'
+                                              * arms on the 9th and 10th, from any screen */
+        if(key_pressed&(1u<<GATEWAY_DUB_KEY)){dub_on=!dub_on;gateway_lights();dub_changed();}
+        if(key_pressed&(1u<<GATEWAY_USB_SEND_KEY)){dub_send_usb_on=!dub_send_usb_on;gateway_lights();dub_changed();}
+        if(key_pressed&(1u<<GATEWAY_BT_SEND_KEY)){dub_send_bt_on=!dub_send_bt_on;gateway_lights();dub_changed();}
+    }
     /* Drain incoming musical messages without generating sound or forwarding notes.
      * The platform handles USB-MIDI update/reader commands independently. Bound a pass. */
     for (i = 0; i < 32u && plat_midi_in(&pkt, &port); i++)
@@ -905,7 +928,7 @@ static void gateway_draw_cpu(void)
     unsigned fx_active=gateway_fx_params.eq || gateway_fx_params.lim;
     uint32_t key=((gateway_cpu_mode?gateway_cpu_drawn:0u)<<16)|((gateway_cpu_mode?cpu2:0u)<<23)|(usb!=0)|((uint32_t)gateway_bt_mode<<1)|
         ((uint32_t)(connected!=0)<<2)|((uint32_t)(pairing!=0)<<3)|
-        ((uint32_t)(codec&3u)<<4)|((uint32_t)(gateway_fx_params.chain && !fx_active)<<7)|((uint32_t)gateway_fx_params.chain<<8)|((uint32_t)(percent+1)<<9)|((uint32_t)gateway_battery_mode<<31)|((uint32_t)gateway_cpu_mode<<30)|((uint32_t)(gateway_usb_out_mode!=0)<<6)|((uint32_t)dub_on<<29);
+        ((uint32_t)(codec&3u)<<4)|((uint32_t)(gateway_fx_params.chain && !fx_active)<<7)|((uint32_t)gateway_fx_params.chain<<8)|((uint32_t)(percent+1)<<9)|((uint32_t)gateway_battery_mode<<31)|((uint32_t)gateway_cpu_mode<<30)|((uint32_t)(gateway_usb_out_mode!=0)<<6);
     if(key==gateway_bar_key && codec==gateway_codec_seen)return;
     gateway_bar_key=key;cv_begin(240,16,C_BLACK);
     unsigned x=gateway_status_badge(3,"USB IN",usb?RGB(20,150,50):RGB(190,25,25),0);
@@ -914,7 +937,6 @@ static void gateway_draw_cpu(void)
     x=gateway_status_badge(x,bt,!gateway_bt_mode?C_GRAY:pairing?RGB(190,150,15):connected?RGB(20,150,50):RGB(190,25,25),!gateway_bt_mode);
     x=gateway_status_badge(x,"FX",gateway_fx_params.chain?(fx_active?RGB(20,150,50):RGB(190,150,15)):C_GRAY,!gateway_fx_params.chain);
     x=gateway_status_badge(x,"USB OUT",gateway_usb_out_mode?RGB(20,150,50):C_GRAY,!gateway_usb_out_mode);
-    if(dub_on)x=gateway_status_badge(x,"DUB",RGB(20,150,50),0);   /* shown only while the dub module is on */
     if(x+text_w(&FONT_T,label)<236u)cv_text(237-text_w(&FONT_T,label),2,&FONT_T,label,C_WHITE);cv_blit(0,0);
 }
 static void gateway_draw_zoom(void)
@@ -1105,6 +1127,7 @@ void app_loop(void)
         if(gateway_display_block)gateway_view_changed();
     }
     gateway_save_settings(now);
+    dub_tape_hold_wanted();                     /* the tape's room follows the sends and the siren's tail */
     gateway_fx_save(now,0);
     if(gateway_shot_frozen)return;
     if (gateway_page_redraw) {

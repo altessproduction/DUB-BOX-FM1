@@ -53,28 +53,37 @@ MASTER mute box control the same state.
 OCT− opens the DUB screen (DUB, SIREN, SIREN 2, DELAY, ISO); OCT− again walks
 the pages and HOME leaves. K1–K4 set the page's four values, in sloop-DUB's
 order — the SIREN pages carry sloop's SIR and SR2 settings (type, wave, pitch,
-send / rate, depth, symmetry, level), DELAY's K4 is the tone. SEL is the page's
-switch — the module on DUB, the siren's wave on SIREN — and lifts every kill
-on ISO.
+send / rate, depth, symmetry, level), DELAY's K4 is the tone. SEL is the
+page's switch — the siren's wave on SIREN, the kills' lift on ISO.
 
-On SIREN, SIREN 2, DELAY and ISO the continuous K1–K4 are potentiometers, as
-sloop-DUB set them (2.9.8): a detent sweeps its share of the range, the whole
-course runs in some 300 degrees (20 detents; an FM-1 turn is 24), one share a
-detent however fast — no acceleration, a turn never outruns the pointer. The
-siren's TYPE and WAVE stay lists, a step a detent. In the browser emulator the
-K1–K4 caps show the same 300° travel, sit at the firmware's real value, and
-turn by dragging up/down, by a circular turn around the knob, or a detent a
-wheel notch.
+The DUB page: K1 the DJ filter, K2 the isolator's mix, K3 the USB in's send
+into the tape echo and K4 the BT in's. The two sends are read separately, each
+at its own level; a send at 0 is DRY. The module's on/off is not on this page —
+the eighth black key holds it.
+
+On DUB, SIREN, SIREN 2, DELAY and ISO the continuous K1–K4 are potentiometers,
+as sloop-DUB set them (2.9.8): a detent sweeps its share of the range, the
+whole course runs in some 300 degrees (20 detents; an FM-1 turn is 24), one
+share a detent however fast — no acceleration, a turn never outruns the
+pointer. The siren's TYPE and WAVE stay lists, a step a detent. In the browser
+emulator the K1–K4 caps show the same 300° travel, sit at the firmware's real
+value, and turn by dragging up/down, by a circular turn around the knob, or a
+detent a wheel notch.
 
 The keyboard is the performance and works on every screen: the first four black
 keys (F♯3/G♯3/A♯3/C♯4 — the OP1–OP4 prints) toggle the ISO band kills (SUB,
-BASS, MIDS, TOPS; a key's LED is lit while its band is down), and the last
-black key (F♯5) is the siren's gate: hold it and the siren sings at its LEVEL,
-release it and the siren stops — what it threw into the tape echo keeps
-ringing, the tail is the delay's, not the key's. REC has nothing to do with
-the siren. All four kills together are the total kill. A kill wakes the DUB
-module (DUB ON on the DUB page) if it was off. While the mixer is visible the
-white keys keep their strip mute/solo role (F3–B3 mute, F4–B4 solo).
+BASS, MIDS, TOPS; a key's LED is lit while its band is down), the eighth black
+key (A♯4, the MONO print) turns the DUB module on and off — its LED is lit
+while the module is on, and the module is on at boot —, the ninth (C♯5, the
+POLY print) and tenth (D♯5) black keys arm the USB in and the BT in sends into
+the delay, each LED lit while its send is armed (both arms are on at boot, the
+send levels at 0), and the last black key (F♯5) is the siren's gate: hold it
+and the siren sings at its LEVEL, release it and the siren stops — what it
+threw into the tape echo keeps ringing, the tail is the delay's, not the
+key's. REC has nothing to do with the siren. All four kills together are the
+total kill. A kill wakes the DUB module (DUB ON on the DUB page) if it was
+off. While the mixer is visible the white keys keep their strip mute/solo role
+(F3–B3 mute, F4–B4 solo).
 
 ## EQ and limiter
 

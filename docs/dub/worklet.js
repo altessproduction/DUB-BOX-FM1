@@ -14,7 +14,7 @@
 //    web_uac_space), which plat_host.c's usb_play_take drains inside the render, as a DAW's playback on the FM-1;
 //  - { type: "uac", on } from the page arms (on) or disarms the source, as a computer that starts and stops
 //    playing. With no source, the emulated USB playback stays at its file path (empty on the web: silence);
-//  - each frame carries the DUB screen's state (app.c's web_dub, 20 bytes packed): the page's K1..K4
+//  - each frame carries the DUB screen's state (app.c's web_dub, 26 bytes packed): the page's K1..K4
 //    potentiometers turn from the values the firmware really holds.
 
 /** the dim controls' opacity for the dim layer's pulse of ns (APP_DIM_LEVELS, plat_dim_ns): 0.25 at 500 ns up to 1 at
@@ -63,7 +63,7 @@ class Fm1 extends AudioWorkletProcessor {
       if (this.ex.web_uac_buf)                       // DUB-BOX: the live USB playback ring, one view, made once
         this.uacL = new Float32Array(this.mem.buffer, this.ex.web_uac_buf(), 8192 * 2);
       if (this.ex.web_dub)                           // DUB-BOX: the DUB screen's state, one view, made once
-        this.dubView = new Uint8Array(this.mem.buffer, this.ex.web_dub(), 20);
+        this.dubView = new Uint8Array(this.mem.buffer, this.ex.web_dub(), 26);
       this.app = globalThis.fm1App || {};
       if (this.app.load) this.app.load(this);
       const max = this.ex.web_store_max();

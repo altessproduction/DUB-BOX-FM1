@@ -77,13 +77,85 @@ int main(void)
     for(unsigned i=0;i<64;i++)assert(dub_siren_tick(&s)==0);
     dub_siren_trigger(&s,100);
     for(unsigned i=0;i<64;i++)assert(dub_siren_tick(&s)); /* the gate re-arms */
-    /* the master chain at rest: bit-transparent, module off and on */
+    /* the master chain at rest: bit-transparent, the boot's module on, then
+     * off, then on again */
     dub_tape_set_send(0);dub_tape_set_lvl(80);dub_tape_set_fb(70);dub_tape_set_ms(400);dub_tape_set_siren_send(0);
     dub_init();
     fill(0.9,7);int32_t ref[512];memcpy(ref,bus,sizeof ref);
     dub_master_process(bus,256);assert(!memcmp(ref,bus,sizeof ref));
+    dub_on=0;fill(0.9,7);memcpy(ref,bus,sizeof ref);
+    dub_master_process(bus,256);assert(!memcmp(ref,bus,sizeof ref));
     dub_on=1;fill(0.9,7);memcpy(ref,bus,sizeof ref);
     dub_master_process(bus,256);assert(!memcmp(ref,bus,sizeof ref));
-    puts("PASS: dub isolator kills and restores bands, FLAT filter untouched, lowpass shaped, the tape echo throws at its tape time and rings, the siren sleeps until triggered, sings hot and falls asleep when its gate opens, the chain at rest is bit-transparent");
+    /* the source throws: the USB in and the BT in reach the tape separately,
+     * each at its own level, each gone when its black key lifts the arm. The
+     * boot's defaults: the module on, both arms on, both levels at 0. */
+    dub_init();
+    assert(dub_on && dub_send_usb_on && dub_send_bt_on && !dub_tape_send && !dub_send_bt);
+    static int32_t hush[512];
+    static int32_t mix[512];
+    unsigned hit;
+    /* the USB in's burst (the mix is the USB in alone, the capture hands it over):
+     * the tape throws it at K3's level, the echo returns at the tape time */
+    dub_tape_attach(tape_store);
+    dub_tape_set_lvl(127);dub_tape_set_fb(0);dub_tape_set_ms(400);dub_tape_set_siren_send(0);
+    dub_tape_set_send(127);dub_tape_set_bt_send(0);
+    hit=0;
+    for(unsigned b=0;b<120;b++){
+        for(unsigned i=0;i<256;i++){
+            uint32_t t=b*256u+i;
+            int32_t s=(t>=7680u&&t<7744u)?6000000:0;      /* one burst on the USB in */
+            mix[2*i]=s;mix[2*i+1]=(int32_t)((double)s*0.8);
+        }
+        dub_send_usb_capture(mix,256);
+        dub_master_process(mix,256);
+        for(unsigned i=0;i<256;i++){
+            uint32_t t=b*256u+i;
+            if(t>7680u+17000u&&t<7680u+18500u&&(mix[2*i]>500000||mix[2*i]<-500000))hit=1;
+        }
+    }
+    assert(hit);
+    /* the BT in's burst (the USB in silent, the mix is the BT in alone): the
+     * BT throw is the mix minus the USB in — the echo comes from K4's level */
+    dub_init();
+    dub_tape_attach(tape_store);
+    dub_tape_set_lvl(127);dub_tape_set_fb(0);dub_tape_set_ms(400);dub_tape_set_siren_send(0);
+    dub_tape_set_send(0);dub_tape_set_bt_send(127);
+    hit=0;
+    for(unsigned b=0;b<120;b++){
+        for(unsigned i=0;i<256;i++){
+            uint32_t t=b*256u+i;
+            int32_t s=(t>=7680u&&t<7744u)?6000000:0;      /* the same burst on the BT in */
+            mix[2*i]=s;mix[2*i+1]=(int32_t)((double)s*0.8);
+        }
+        dub_send_usb_capture(hush,256);
+        dub_master_process(mix,256);
+        for(unsigned i=0;i<256;i++){
+            uint32_t t=b*256u+i;
+            if(t>7680u+17000u&&t<7680u+18500u&&(mix[2*i]>500000||mix[2*i]<-500000))hit=1;
+        }
+    }
+    assert(hit);
+    /* the arm: the same USB throw, the 9th key's arm lifted — nothing passes */
+    dub_init();
+    dub_tape_attach(tape_store);
+    dub_tape_set_lvl(127);dub_tape_set_fb(0);dub_tape_set_ms(400);dub_tape_set_siren_send(0);
+    dub_tape_set_send(127);dub_tape_set_bt_send(0);dub_send_usb_on=0;
+    hit=0;
+    for(unsigned b=0;b<120;b++){
+        for(unsigned i=0;i<256;i++){
+            uint32_t t=b*256u+i;
+            int32_t s=(t>=7680u&&t<7744u)?6000000:0;
+            mix[2*i]=s;mix[2*i+1]=(int32_t)((double)s*0.8);
+        }
+        dub_send_usb_capture(mix,256);
+        dub_master_process(mix,256);
+        for(unsigned i=0;i<256;i++){
+            uint32_t t=b*256u+i;
+            if(t>7680u+17000u&&t<7680u+18500u&&(mix[2*i]>500000||mix[2*i]<-500000))hit=1;
+        }
+    }
+    assert(!hit);
+    puts("PASS: dub isolator kills and restores bands, FLAT filter untouched, lowpass shaped, the tape echo throws at its tape time and rings, the siren sleeps until triggered, sings hot and falls asleep when its gate opens, the chain at rest is bit-transparent, the USB in and the BT in throw into the tape separately at their own levels and their arms silence them");
     return 0;
 }

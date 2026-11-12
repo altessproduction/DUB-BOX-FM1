@@ -9,3 +9,5 @@ DELAY	the tape echo delay
 ISOLATOR	the isolator
 USB AUDIO	USB audio
 MASTER KNOB	master volume knob
+USB SEND	USB send
+BT SEND	B T send

@@ -1,7 +1,9 @@
 {
-  "what": "A dub station for the M-VAVE FM-1: the USB/BT audio router with sloop-DUB's dub modules on top — a dub siren, a tape echo, a bipolar DJ filter and a four-band isolator, each page's four settings on K1-K4, the black keys as the live performance.",
+  "what": "A dub station for the M-VAVE FM-1: the USB/BT audio router with sloop-DUB's dub modules on top — a dub siren, a tape echo, a bipolar DJ filter and a four-band isolator, each page's four settings on K1-K4, the black keys as the live performance: the eighth turns the dub on and off, the ninth and tenth arm the USB in and BT in sends into the echo.",
   "author": "altessproduction",
-  "kinds": ["other"],
+  "kinds": [
+    "other"
+  ],
   "play": "https://altessproduction.github.io/DUB-BOX-FM1/dub/",
   "image": "assets/github/dubbox.png",
   "color": "#FF621A"

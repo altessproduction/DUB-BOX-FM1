@@ -2,11 +2,13 @@
  * DUB-BOX's DUB screen: the five pages DUB, SIREN, SIREN 2, DELAY and ISO —
  * sloop's dub pages (DUB, SIR, SR2, DLY, ISO) on the router's controls, each
  * page's four settings on K1..K4 in sloop's order. OCT- enters and walks the
- * pages, HOME leaves. SEL does the page's switch (the module on DUB, the
- * siren's wave on SIREN). The keys are the performance, from any screen: the
- * four first black keys kill the ISO bands, the last black key is the siren's
- * gate — held it sings at LEVEL, released it stops, and what it threw into the
- * tape rings on.
+ * pages, HOME leaves. SEL does the page's switch (the siren's wave on SIREN,
+ * the kills' lift on ISO) — the module's on/off is the 8th black key's. The
+ * keys are the performance, from any screen: the four first black keys kill
+ * the ISO bands, the eighth black key is the module, the ninth and tenth arm
+ * the USB in and the BT in throws into the tape, the last black key is the
+ * siren's gate — held it sings at LEVEL, released it stops, and what it threw
+ * into the tape rings on.
  * Included by app.c after fx/ui.h: cv_*, the fonts and the FX helpers exist. */
 #define DUB_UI_ROW_Y0 44
 #define DUB_UI_ROW_DY 42
@@ -16,13 +18,20 @@ static const char *const gateway_dub_page_names[DUB_PG_N] = {"DUB", "SIREN", "SI
 static uint8_t gateway_dub_sir_lvl = 88;           /* the SIREN page's LEVEL, what the key sounds at */
 static uint8_t gateway_dub_sir_held;               /* the siren's gate: down while the last black key is held */
 static uint8_t gateway_dub_sir_key;                /* the key's hold — the gate's only source */
+static uint32_t gateway_dub_sir_released_ms;       /* when the gate opened: the tape's tail keeps its room past it */
 /* the keyboard's dub keys, every screen: the four first black keys (F#3 G#3 A#3
  * C#4, the OP1..OP4 prints) kill the ISO bands — SUB BASS MIDS TOPS, their LED
- * lit while killed — and the last black key (F#5, no print) is the siren's
- * gate: held it sings, released it stops, the tape's tail rings on. A kill
- * wakes the module (DUB ON) if it was off: a mute that silently did nothing
- * would read as broken. */
+ * lit while killed — the eighth black key (A#4, the MONO print) is the module's
+ * on/off, its LED lit while DUB is on (and DUB is on at boot), the ninth and
+ * tenth (C#5, the POLY print, and D#5, no print) arm the USB in and the BT in
+ * throws into the tape, lit while armed (armed at boot, the levels at 0), and
+ * the last black key (F#5, no print) is the siren's gate: held it sings,
+ * released it stops, the tape's tail rings on. A kill wakes the module (DUB ON)
+ * if it was off: a mute that silently did nothing would read as broken. */
 static const uint8_t gateway_dub_kill_keys[DUB_BANDS] = {1, 3, 5, 8};
+#define GATEWAY_DUB_KEY 17u                 /* the 8th black key (A#4): the module's on/off */
+#define GATEWAY_USB_SEND_KEY 20u            /* the 9th (C#5): the USB in send's arm */
+#define GATEWAY_BT_SEND_KEY 22u             /* the 10th (D#5): the BT in send's arm */
 #define GATEWAY_SIR_KEY 25u
 
 static void dub_tape_hold_wanted(void);
@@ -40,7 +49,15 @@ static void dub_changed(void)
 static void *gateway_dub_tape_block;
 static uint8_t dub_tape_wanted(void)
 {
-    return dub_on && (dub_tape_lvl || dub_tape_fb || dub_tape_send || dub_siren_send);
+    /* The tape's room is held only while the echo can receive signal or has
+     * just rung: a source send connected (an armed key with its level up), or
+     * the siren singing — its tail keeps the room a few seconds past the gate.
+     * At rest — the boot's sends at 0, the siren asleep — the work area stays
+     * whole for the waveform and spectrum captures. */
+    return dub_on && ((dub_send_usb_on && dub_tape_send) || (dub_send_bt_on && dub_send_bt) ||
+                      gateway_dub_sir_held || dub_siren.active || dub_siren.level_cur ||
+                      (gateway_dub_sir_released_ms &&
+                       plat_ms() - gateway_dub_sir_released_ms < 5000u + dub_tape_ms));
 }
 static void dub_tape_hold(int want)
 {
@@ -164,12 +181,18 @@ static void gateway_dub_draw(void)
                 dub_ui_hz(text + 3, dub_filter_hz(v));
             }
             dub_ui_row(0, "K1 FILTER", text, v == 64 ? C_GRAY : RGB(255, 212, 40),
-                       v == 64 ? 0u : (unsigned)(v < 64 ? 64 - v : v - 64), 64u);
+                       (unsigned)v, 127u);
             dub_ui_num(text, dub_isolator.mix);
             dub_ui_row(1, "K2 MIX", text, C_WHITE, dub_isolator.mix, 127u);
-            if (dub_tape_send) dub_ui_num(text, dub_tape_send); else dub_ui_put(text, "DRY");
-            dub_ui_row(2, "K3 SEND", text, dub_tape_send ? RGB(75, 210, 150) : C_GRAY, dub_tape_send, 127u);
-            cv_text(6, 218, &FONT_XS, "SEL ON/OFF", C_GRAY);
+            if (!dub_send_usb_on) dub_ui_put(text, "OFF");
+            else if (dub_tape_send) dub_ui_num(text, dub_tape_send); else dub_ui_put(text, "DRY");
+            dub_ui_row(2, "K3 USB SEND", text, !dub_send_usb_on ? RGB(255, 90, 60) :
+                       dub_tape_send ? RGB(75, 210, 150) : C_GRAY, dub_tape_send, 127u);
+            if (!dub_send_bt_on) dub_ui_put(text, "OFF");
+            else if (dub_send_bt) dub_ui_num(text, dub_send_bt); else dub_ui_put(text, "DRY");
+            dub_ui_row(3, "K4 BT SEND", text, !dub_send_bt_on ? RGB(255, 90, 60) :
+                       dub_send_bt ? RGB(75, 210, 150) : C_GRAY, dub_send_bt, 127u);
+            cv_text(6, 218, &FONT_XS, "8TH KEY ON/OFF  9/10 SENDS", C_GRAY);
         } else if (page == DUB_PG_SIREN) {
             /* sloop's SIR page: K1 TYPE, K2 WAVE, K3 PITCH, K4 SEND */
             dub_ui_row(0, "K1 TYPE", DUB_SIR_TYPE_NAMES[dub_siren.type], RGB(255, 140, 25), 0, 0);
@@ -240,14 +263,23 @@ static void gateway_dub_turn(unsigned enc, int delta)
 {
     unsigned page = gateway_dub_page;
     if (page == DUB_PG_MAIN) {
-        if (enc == EN_K1) { dub_filter_set((int16_t)(dub_filter_get() + delta)); dub_changed(); }
-        else if (enc == EN_K2) {
-            int v = (int)dub_isolator.mix + delta;
+        /* the DUB page's four, pots all four now (0..127 over the same 300
+         * degrees): the filter's whole lowpass-flat-highpass course, the
+         * isolator's mix, and the two sources' throws into the tape */
+        if (enc == EN_K1) {
+            dub_filter_set((int16_t)dub_clamp((int)dub_filter_get() + dub_pot_s(delta, 127), 0, 127));
+            dub_changed();
+        } else if (enc == EN_K2) {
+            int v = (int)dub_isolator.mix + dub_pot_s(delta, 127);
             dub_isolator.mix = (uint8_t)(v < 0 ? 0 : v > 127 ? 127 : v);
             dub_changed();
         } else if (enc == EN_K3) {
-            int v = (int)dub_tape_send + delta;
+            int v = (int)dub_tape_send + dub_pot_s(delta, 127);
             dub_tape_set_send((uint8_t)(v < 0 ? 0 : v > 127 ? 127 : v));
+            dub_changed();
+        } else if (enc == EN_K4) {
+            int v = (int)dub_send_bt + dub_pot_s(delta, 127);
+            dub_tape_set_bt_send((uint8_t)(v < 0 ? 0 : v > 127 ? 127 : v));
             dub_changed();
         }
     } else if (page == DUB_PG_SIREN) {
@@ -317,14 +349,11 @@ static void gateway_dub_turn(unsigned enc, int delta)
         }
     }
 }
-/* the page's switch: SEL on DUB (module on/off) and SIREN (the wave — K2 turns
- * it too) */
+/* the page's switch: SEL on SIREN (the wave — K2 turns it too) and on ISO (the
+ * kills' lift). The module's on/off left SEL: the 8th black key holds it now */
 static void gateway_dub_sel(void)
 {
-    if (gateway_dub_page == DUB_PG_MAIN) {
-        dub_on = !dub_on;
-        gateway_lights();
-    } else if (gateway_dub_page == DUB_PG_SIREN) {
+    if (gateway_dub_page == DUB_PG_SIREN) {
         dub_siren_set_wave(&dub_siren, (uint8_t)((dub_siren.wave + 1u) % DUB_SIW_N));
     } else if (gateway_dub_page == DUB_PG_ISO) {
         /* SEL lifts every kill: the full band comes back */
@@ -356,13 +385,17 @@ static void gateway_dub_siren_hold(int down)
             gateway_dub_sir_lvl = 88u;
         dub_siren_trigger(&dub_siren, gateway_dub_sir_lvl);
         gateway_dub_sir_held = 1;
+        gateway_dub_sir_released_ms = 0;
     } else {
         /* the gate opens: the level falls back over a few samples (no click)
          * and the siren sleeps — whatever it threw into the tape keeps
-         * ringing, the tail is the tape's, not the key's */
+         * ringing, the tail is the tape's, not the key's; the tape's room
+         * stays a few seconds past the gate, then goes back to the displays */
         dub_siren_trigger(&dub_siren, 0);
         gateway_dub_sir_held = 0;
+        gateway_dub_sir_released_ms = plat_ms();
     }
+    dub_tape_hold_wanted();
     gateway_lights();
     gateway_page_redraw = 1;
 }

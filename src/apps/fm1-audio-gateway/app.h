@@ -93,3 +93,9 @@ void app_usb_out_usb(const int32_t *lr,uint32_t n,int post);
 unsigned app_usb_out_bt_mode(void);
 void app_usb_out_bt_sample(unsigned frame,unsigned ch,int32_t sample);
 const int32_t *app_usb_out_end(uint32_t n);
+
+/* DUB-BOX: the tape echo's source throws (dub_core.h). The render hands the
+ * USB in bus over before the Bluetooth mix joins it (uac_mix.h); the BT in
+ * throw is the mix minus that USB in, taken before the module's filters. */
+#define APP_DUB_SENDS
+void dub_send_usb_capture(const int32_t *lr,uint32_t n);

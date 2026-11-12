@@ -9,6 +9,9 @@
 #ifndef DUB_CORE_H
 #define DUB_CORE_H
 #include <stdint.h>
+#ifndef APP_BLOCK
+#define APP_BLOCK 256u                  /* the render's frames (app.h's); a bare test's fallback */
+#endif
 #ifdef PLAT_HOST
 #include <string.h>
 #endif
@@ -314,6 +317,20 @@ static uint8_t dub_siren_send = 48;                 /* the siren's own throw, 0 
                                                      * reads its own copy (dub_tape_set_siren_send);
                                                      * the SIREN page's K4 SEND rules both */
 
+/* The sources' throws (the DUB page's K3 USB SEND and K4 BT SEND, the 9th and
+ * 10th black keys' arms): the tape reads the USB in and the BT in as they came
+ * in — post-fader, before the module's isolator and filter touch the bus — two
+ * throws the page sets and the keys arm, both armed with their levels at 0 at
+ * boot (the send delay is active, its send at 0). The USB throw arrives per
+ * block from the render (uac_mix's dub_send_usb_capture); the BT throw is the
+ * mix minus that USB throw, taken before the filters. A block the render did
+ * not capture throws silence: a send rests, it does not lie with a stale bus. */
+static uint8_t dub_send_bt = 0;                     /* the BT in throw's level, 0 DRY */
+static uint8_t dub_send_usb_on = 1, dub_send_bt_on = 1;   /* the black keys' arms, on at boot */
+static int32_t dub_send_bt_g;                       /* the BT throw's gain, Q15, slewed */
+static int16_t dub_throw_usb[APP_BLOCK], dub_throw_bt[APP_BLOCK];
+static volatile uint8_t dub_sends_live;             /* the render left a fresh USB throw */
+
 static void dub_tape_init(void)
 {
     dub_tape_buf = 0;
@@ -349,7 +366,36 @@ static void dub_tape_set_tone(uint8_t tone)
 }
 static void dub_tape_set_lvl(uint8_t lvl) { dub_tape_lvl = lvl > 127u ? 127u : lvl; }
 static void dub_tape_set_send(uint8_t send) { dub_tape_send = send > 127u ? 127u : send; }
+static void dub_tape_set_bt_send(uint8_t send) { dub_send_bt = send > 127u ? 127u : send; }
 static void dub_tape_set_siren_send(uint8_t send) { dub_siren_send = send > 127u ? 127u : send; }
+
+/* the render's USB in throw (uac_mix calls it with the USB in bus, after the
+ * app's faders, before the Bluetooth mix): the mono bus in Q15 for the tape */
+void dub_send_usb_capture(const int32_t *lr, uint32_t n)
+{
+    uint32_t i;
+    if (n > APP_BLOCK) {
+        dub_sends_live = 0;
+        return;
+    }
+    for (i = 0; i < n; i++) {
+        int32_t m = (lr[2 * i] + lr[2 * i + 1]) >> 9;    /* the bus's mono, Q23 -> Q15 */
+        if (m > 32767)
+            m = 32767;
+        else if (m < -32768)
+            m = -32768;
+        dub_throw_usb[i] = (int16_t)m;
+    }
+    dub_sends_live = 1;
+}
+
+/* whether the tape turns at all: the echo's own level and feedback keep a tail
+ * ringing, and any throw connected — the siren's, or an armed source's send */
+static uint8_t dub_tape_runs(void)
+{
+    return dub_tape_lvl || dub_tape_fb || dub_siren_send ||
+           (dub_send_usb_on && dub_tape_send) || (dub_send_bt_on && dub_send_bt);
+}
 
 /* per block: the read time and the offset's ramp */
 static void dub_tape_block(uint32_t n)
@@ -372,13 +418,20 @@ static void dub_tape_block(uint32_t n)
     dub_tape_fl += DUB_FLT_INC;
     w1 = ((dub_sine(dub_tape_wow) * DUB_WOW_DEP) >> 15) + ((dub_sine(dub_tape_fl) * DUB_FLT_DEP) >> 15);
     dub_tape_dw = (w1 - dub_tape_w0) / (int32_t)n;
-    {   /* the throws' gains, slewed block to block */
+    {   /* the throws' gains, slewed block to block: the module output's throw is
+         * gone — the USB in (K3, the 9th key's arm) and the BT in (K4, the 10th)
+         * throw instead, each silenced while its key lifts the arm */
         int32_t st, t;
-        t = (int32_t)dub_tape_send * 258;
+        t = (int32_t)(dub_send_usb_on ? dub_tape_send : 0) * 258;
         st = (t - dub_tape_send_g) >> 3;
         if (!st && t != dub_tape_send_g)
             st = t > dub_tape_send_g ? 1 : -1;
         dub_tape_send_g += st;
+        t = (int32_t)(dub_send_bt_on ? dub_send_bt : 0) * 258;
+        st = (t - dub_send_bt_g) >> 3;
+        if (!st && t != dub_send_bt_g)
+            st = t > dub_send_bt_g ? 1 : -1;
+        dub_send_bt_g += st;
         t = (int32_t)dub_siren_send * 258;
         st = (t - dub_tape_sir_g) >> 3;
         if (!st && t != dub_tape_sir_g)
@@ -548,19 +601,25 @@ static int32_t dub_siren_tick(dub_siren_t *s)
 /* The master chain the audio callback runs, between the USB+BT mix and the
  * router's FX (EQ, limiter) and MASTER: the isolator, the DJ filter, then one
  * fused pass — the siren joined to the bus, the throws into the tape, the
- * tape's return. dub_on gates the whole module; the siren sounds whenever its
- * gate is down (the last black key), dub_on or not. */
+ * tape's return. dub_on gates the whole module (the 8th black key's on/off, on
+ * at boot); the siren sounds whenever its gate is down (the last black key),
+ * dub_on or not. */
 static uint8_t dub_on;
 static dub_isolator_t dub_isolator;
 static dub_siren_t dub_siren;
 
 static void dub_init(void)
 {
-    dub_on = 0;
+    dub_on = 1;                                      /* the module is on at boot: the 8th
+                                                     * black key's LED lights (dub_ui.h) */
     dub_isolator_init(&dub_isolator);
     dub_isolator.enabled = 1;
     dub_siren_init(&dub_siren);
     dub_tape_init();
+    dub_send_bt = 0;
+    dub_send_usb_on = dub_send_bt_on = 1;
+    dub_send_bt_g = 0;
+    dub_sends_live = 0;
     dub_filter_set(64);                              /* the DJ filter back to FLAT, its
                                                       * glide and SVF histories cleared */
     dub_flt.amt = 0;
@@ -571,30 +630,70 @@ static void dub_init(void)
 static void dub_master_process(int32_t *lr, uint32_t n)
 {
     uint32_t i;
-    if (dub_on) {
-        dub_isolator_process(&dub_isolator, lr, n);
-        dub_filter_process(lr, n);
-        if (dub_tape_lvl || dub_tape_fb || dub_tape_send || dub_siren_send) {
-            dub_tape_block(n);
+    uint8_t live = dub_sends_live && n <= APP_BLOCK;  /* the render left a fresh USB throw */
+    uint8_t tape;
+    dub_sends_live = 0;                          /* the flag is spent, whatever this call makes of it */
+    if (!dub_on) {
+        /* the module is off, but the siren may still sing */
+        if (dub_siren.active || dub_siren.level_cur) {
             for (i = 0; i < n; i++) {
-                int32_t l = lr[2 * i], r = lr[2 * i + 1];
                 int32_t y = dub_siren_tick(&dub_siren);
-                int32_t mono = ((l + y) + (r + y)) >> 1;     /* the module's output, the siren in */
-                int32_t tin = dub_mul15(mono, dub_tape_send_g) + dub_mul15(y, dub_tape_sir_g);
-                int32_t wet = dub_tape_step(tin);
-                lr[2 * i] += y + wet;
-                lr[2 * i + 1] += y + wet;
+                lr[2 * i] += y;
+                lr[2 * i + 1] += y;
             }
-            return;
+        }
+        return;
+    }
+    tape = dub_tape_runs();
+    if (tape) {
+        /* the throws, before the isolator and the filter touch the bus: the USB
+         * in as the render left it, the BT in as the mix minus that USB in. A
+         * block without the render's capture throws silence. */
+        if (live) {
+            for (i = 0; i < n; i++) {
+                int32_t m = (lr[2 * i] + lr[2 * i + 1]) >> 9;    /* the mix's mono, Q15 */
+                int32_t bt;
+                if (m > 32767)
+                    m = 32767;
+                else if (m < -32768)
+                    m = -32768;
+                bt = m - dub_throw_usb[i];
+                if (bt > 32767)
+                    bt = 32767;
+                else if (bt < -32768)
+                    bt = -32768;
+                dub_throw_bt[i] = (int16_t)bt;
+            }
+        } else {
+            for (i = 0; i < n; i++) {
+                dub_throw_usb[i] = 0;
+                dub_throw_bt[i] = 0;
+            }
         }
     }
-    /* the echo rests (or the module is off), but the siren may still sing */
-    if (dub_siren.active || dub_siren.level_cur) {
-        for (i = 0; i < n; i++) {
-            int32_t y = dub_siren_tick(&dub_siren);
-            lr[2 * i] += y;
-            lr[2 * i + 1] += y;
+    dub_isolator_process(&dub_isolator, lr, n);
+    dub_filter_process(lr, n);
+    if (!tape) {
+        /* the echo rests, but the siren may still sing */
+        if (dub_siren.active || dub_siren.level_cur) {
+            for (i = 0; i < n; i++) {
+                int32_t y = dub_siren_tick(&dub_siren);
+                lr[2 * i] += y;
+                lr[2 * i + 1] += y;
+            }
         }
+        return;
+    }
+    dub_tape_block(n);
+    for (i = 0; i < n; i++) {
+        int32_t l = lr[2 * i], r = lr[2 * i + 1];
+        int32_t y = dub_siren_tick(&dub_siren);
+        int32_t tin = (dub_mul15(dub_throw_usb[i], dub_tape_send_g) << 9) +
+                      (dub_mul15(dub_throw_bt[i], dub_send_bt_g) << 9) +
+                      dub_mul15(y, dub_tape_sir_g);   /* the sources' throws (Q15 -> Q23), the siren's in */
+        int32_t wet = dub_tape_step(tin);
+        lr[2 * i] += y + wet;
+        lr[2 * i + 1] += y + wet;
     }
 }
 #endif

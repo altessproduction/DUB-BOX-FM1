@@ -26,8 +26,15 @@ static void migration(void)
 }
 static void eq(void)
 {
-    tap(B_HOME);assert(gateway_has_wave());unsigned available=plat_work_available();tap(B_FX);app_loop();
-    assert(!gateway_fx_limiter && gateway_fx_row==2 && !gateway_display_block && plat_work_available()>available && !gateway_fx.meter_enabled);
+    /* The wave and FFT captures leave; the tape echo's room may come back at the
+     * same time (DUB on at boot, the siren's send connected): weigh the work
+     * with the echo's held block, both sides. */
+    tap(B_HOME);assert(gateway_has_wave());
+    unsigned available=plat_work_available()+(gateway_dub_tape_block?dub_tape_bytes():0u);
+    tap(B_FX);app_loop();
+    assert(!gateway_fx_limiter && gateway_fx_row==2 && !gateway_display_block &&
+           plat_work_available()+(gateway_dub_tape_block?dub_tape_bytes():0u)>available &&
+           !gateway_fx.meter_enabled);
     assert(!usb_input_wave_enabled && !usb_spectrum_enabled && !master_meter_enabled);
     for(unsigned type=0;type<FX_TYPES;type++){
         gateway_fx_params.band[0].type=type;

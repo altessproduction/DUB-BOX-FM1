@@ -12,10 +12,15 @@ static void lights(void)
     if(gateway_bt_mode)dim|=1u<<B_OCTUP;
     assert(lights_b==(active|(gateway_muted?1u<<B_PLAY:LED_PLAY_GREEN)));
     {   /* the dub keys ride on every screen (dub_ui.h): a killed band's black key
-         * lit, the rest dim, the siren key lit while it sounds */
-        unsigned lk=0,dk=(1u<<1)|(1u<<3)|(1u<<5)|(1u<<8)|(1u<<25);
+         * lit, the rest dim, the module's key lit while DUB is on (on at boot),
+         * the sends' arms' keys lit while armed (on at boot), the siren key lit
+         * while it sounds */
+        unsigned lk=(1u<<17)|(1u<<20)|(1u<<22),dk=(1u<<1)|(1u<<3)|(1u<<5)|(1u<<8)|(1u<<25);
         for(unsigned g=0;g<4;g++)if(dub_isolator.p[g].mute){lk|=1u<<gateway_dub_kill_keys[g];dk&=~(1u<<gateway_dub_kill_keys[g]);}
         if(gateway_dub_sir_held){lk|=1u<<25;dk&=~(1u<<25);}
+        if(!dub_on){lk&=~(1u<<17);dk|=1u<<17;}
+        if(!dub_send_usb_on){lk&=~(1u<<20);dk|=1u<<20;}
+        if(!dub_send_bt_on){lk&=~(1u<<22);dk|=1u<<22;}
         assert(dim_btn==dim && lights_db==dim && lights_glow==1 && lit_keys==lk && !mid_keys && dim_keys==dk);
     }
 }
@@ -36,7 +41,7 @@ int main(void)
         tap(B_FX);assert(gateway_screen==GATEWAY_FX && !gateway_display_block);app_loop();lights();
         tap(B_PLAY);lights();assert(gateway_muted);tap(B_PLAY);lights();assert(!gateway_muted);
         tap(B_HOME);assert(gateway_mode==mode && gateway_screen==GATEWAY_MAIN);
-        now_ms+=750;app_loop();gateway_settings_t s;assert(plat_store_load(OBJ_SETTINGS,&s,sizeof s)==sizeof s && s.version==18 && s.mode==mode);
+        now_ms+=750;app_loop();gateway_settings_t s;assert(plat_store_load(OBJ_SETTINGS,&s,sizeof s)==sizeof s && s.version==19 && s.mode==mode);
         app_init();app_ui_init();assert(gateway_mode==mode && gateway_screen==GATEWAY_MAIN);tap(B_HOME);
     }
     /* v1-v6 numeric modes translate to the same actual view, then write the current schema. */

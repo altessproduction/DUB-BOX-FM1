@@ -69,6 +69,10 @@ static inline void uac_mix(int32_t *o, uint32_t n, uint32_t gain, uint32_t maste
 #ifdef APP_USB_OUT_ROUTING
     app_usb_out_usb(o,n,1);
 #endif
+#ifdef APP_DUB_SENDS
+    dub_send_usb_capture(o,n);                      /* DUB-BOX: the USB in bus, the tape's USB throw —
+                                                     * the Bluetooth mix joins right after */
+#endif
 #ifdef APP_BT_RECEIVER
     plat_bt_receiver_mix(o, n,
 #ifdef APP_MASTER_FX
