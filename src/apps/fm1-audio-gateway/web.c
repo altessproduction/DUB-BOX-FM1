@@ -4,9 +4,10 @@
  * state, packed for the web page's K1..K4 potentiometers — src/web/emu/worklet.js (the
  * app's fork) publishes it with each frame, and web/emu/index.html parses it. The pots
  * turn from the values the firmware really holds, whoever wrote them: the page's own
- * turns, the black keys, the boot's saved settings, a restart. Layout: 26 bytes,
+ * turns, the black keys, the boot's saved settings, a restart. Layout: 31 bytes,
  * little-endian, __attribute__((packed)) — the page's parser must match. The first 20
- * bytes keep the readback's first layout (the v1 page parses them the same). */
+ * bytes keep the readback's first layout (the v1 page parses them the same), the
+ * 21st..26th the second's, the synare's five came last (v3 page). */
 typedef struct __attribute__((packed)) {
     uint8_t page;                       /* DUB_PG_* */
     uint8_t type, wave;                 /* SIREN's K1/K2 lists, the item's index */
@@ -22,6 +23,8 @@ typedef struct __attribute__((packed)) {
     uint8_t state;                      /* bit 0 the module on, bit 1 the USB send armed,
                                          * bit 2 the BT send armed */
     uint8_t screen;                     /* gateway_screen: the pots live on the DUB screen */
+    uint16_t synfrq;                    /* SYN K1 PITCH, 120..800 Hz */
+    uint8_t syndec, syndrop, synsend;   /* SYN's K2/K3/K4, 0..127 */
 } gateway_dub_wire_t;
 
 static gateway_dub_wire_t gateway_dub_wire;
@@ -44,6 +47,8 @@ __attribute__((used, visibility("default"))) const uint8_t *web_dub(void)
     w->usend = dub_tape_send; w->bsend = dub_send_bt;
     w->state = (uint8_t)((dub_on ? 1u : 0u) | (dub_send_usb_on ? 2u : 0u) | (dub_send_bt_on ? 4u : 0u));
     w->screen = gateway_screen;
+    w->synfrq = dub_synare.freq_hz;
+    w->syndec = dub_synare.decay; w->syndrop = dub_synare.drop; w->synsend = dub_synare.send;
     return (const uint8_t *)w;
 }
 

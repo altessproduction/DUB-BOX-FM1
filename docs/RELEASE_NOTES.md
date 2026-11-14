@@ -1,6 +1,7 @@
 # DUB-BOX 1.0.9
 
-The tape echo's top of course — the sound-system's infinite tape:
+The tape echo's top of course — the sound-system's infinite tape — and the
+synare, the last white key's own drum:
 
 - **The DLY page's K2 FEEDBK holds the tail forever from the 90th share of its
   course** (114 of 127): what was played darkens pass by pass (the damping,
@@ -16,23 +17,30 @@ The tape echo's top of course — the sound-system's infinite tape:
   (about −60 dB) seeds the loop out of silence — park the knob at 100, walk
   away, come back to the tape screaming. The soft clip holds whatever it
   becomes: the scream settles near −4 dBFS at the 100 %, never a number that
-  leaves Q15.
-- **The DLY page says where the knob is**: the FEEDBK row turns orange at the
-  90th share and red in the larsen, and the bottom hint reads THE TAIL NEVER
-  DIES / LARSEN MIND THE LEVEL instead of HOME BACK.
-- **The tape's room stays held while the knob sits at the share or above** —
-  the loop sustains itself, the buffer cannot go back to the displays; the
-  waveform and spectrum captures wait until the knob comes back below 90, and
-  the displays say so. Below the share the old economy rules (the room frees
-  five seconds past the last source, as 1.0.7 built it).
-- The emulator rebuilt with the same firmware (emcc 7.0.0, 179 119 B wasm);
-  its manual documents the zone. The host suite covers the hold (one burst,
-  still singing 30 s on, and not built past twice its size), the runaway
-  (bounded at the clip's hold, the loop singing alone) and the 70's tail dead
-  by 20 s.
+  leaves Q15. The FEEDBK row turns orange at the share and red in the larsen,
+  and the tape's room stays held while the knob sits there (the waveform and
+  spectrum captures wait until it comes back below, the displays say so).
+- **The SYNARE page and the last white key (F5)** — the syn-drum the
+  sound-systems dub with: a press strikes, the hit rings out, a new press
+  re-strikes, and the tail is the tape's. The sine starts at K1 PITCH
+  (120–800 Hz) and glides down K3 DROP's course (up to two octaves over some
+  30 ms — the "doom") while K2 DECAY's envelope fades (80–840 ms); K4 SEND
+  throws the hit into the tape echo (0 DRY, 48 at boot, as the siren's). The
+  key works from any screen, dub on or not, its LED lit while the hit sounds.
+  The strike's room follows the siren's: the tape's tail keeps the work area
+  five seconds past the last hit.
+- **Settings carry v20** (the synare's five appended to the v19 record;
+  v19/v18/v17 records load unchanged, the synare keeping its fresh boot's
+  voice). The emulator rebuilt with the same firmware (emcc 7.0.0, 176 111 B
+  wasm), its page parses the 31-byte readback and the SYNARE page's caps sit
+  at the firmware's real values; its manual documents the drum and the zone.
+  The host suites cover the hold, the runaway, and the drum (the onset hot,
+  gone within its decay, the pitch fallen, the send reaching the tape); the
+  memory contract holds for the captures with SBC (margin 8 B) and AAC, the
+  aptX corner degrades as 1.0.0 documented.
 
 Package identity `FM-1_2345`, `dub-box-1.0.9.fwsc` (613 178 B,
-sha256 bac4097f…493fb5).
+sha256 8cc61f63…aa9333).
 
 # DUB-BOX 1.0.8
 

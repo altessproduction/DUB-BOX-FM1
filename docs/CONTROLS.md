@@ -67,9 +67,17 @@ low sing that never dies — the sound-system's infinite tape. Past the share
 the loop builds into the larsen: the scream breathes and wanders on its own,
 the soft clip holds it, and a faint hiss seeds it out of silence — keep a hand
 on K2 and on K3 LEVEL. The FEEDBK row turns orange at the share and red in the
-larsen, and the hint says so. While the knob sits at the share or above, the
-tape's room stays held (the loop sustains itself): the waveform and spectrum
-captures wait until the knob comes back below.
+larsen. While the knob sits at the share or above, the tape's room stays held
+(the loop sustains itself): the waveform and spectrum captures wait until the
+knob comes back below.
+
+The SYNARE page (the walk's last stop) is the syn-drum's: **the last white key
+(F5) strikes it**, from any screen, dub on or not — a press is a hit, the hit
+rings out, a new press re-strikes, the tail is the tape's. K1 the hit's pitch
+120–800 Hz, K2 the decay 80–840 ms, K3 the pitch's fall (up to two octaves
+over some 30 ms — the "doom"), K4 the throw into the tape echo. The key's LED
+is lit while the hit sounds, and the tape's tail keeps its room five seconds
+past the last strike.
 
 On DUB, SIREN, SIREN 2, DELAY and ISO the continuous K1–K4 are potentiometers,
 as sloop-DUB set them (2.9.8): a detent sweeps its share of the range, the

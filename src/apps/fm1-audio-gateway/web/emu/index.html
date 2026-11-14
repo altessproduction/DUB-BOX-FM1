@@ -317,7 +317,7 @@ body.compact #manual { display: none; }
 </section>
 
 <div id="help">
-  <b>OCT−</b> ouvre l'écran DUB (DUB · SIREN · SIREN 2 · DELAY · ISO) — <kbd>Z</kbd>/<kbd>X</kbd> au clavier, <kbd>espace</kbd> = PLAY, <kbd>R</kbd> = REC, <kbd>↑↓</kbd> = SELECT — <b>touches noires</b> : les 4 premières tuent les bandes ISO, la dernière est la gate de la sirène ·
+  <b>OCT−</b> ouvre l'écran DUB (DUB · SIREN · SIREN 2 · DELAY · ISO · SYNARE) — <kbd>Z</kbd>/<kbd>X</kbd> au clavier, <kbd>espace</kbd> = PLAY, <kbd>R</kbd> = REC, <kbd>↑↓</kbd> = SELECT — <b>touches noires</b> : les 4 premières tuent les bandes ISO, la dernière est la gate de la sirène ·
   <a href="../installer/" target="_blank" rel="noopener">installer sur un vrai FM-1</a> ·
   <a href="https://github.com/altessproduction/DUB-BOX-FM1" target="_blank" rel="noopener">GitHub</a>
 </div>
@@ -345,6 +345,7 @@ Les réglages survivent au rechargement de la page.</p>
 <li><b><span class="chip">SIREN</span></b> — comme la page <b>SIR</b> de sloop-DUB : <span class="kn">K1</span> le type de LFO (WAIL, HILO, RAMP, SWEEP, SPACE), <span class="kn">K2</span> la forme (SQR, PLS, SAW, TRI, SIN), <span class="kn">K3</span> la hauteur 220–1200 Hz, <span class="kn">K4</span> le <i>send</i> — l'envoi de la sirène dans le tape echo (0 = DRY ; c'est lui qui laisse sa queue sonner après le relâchement). La <b>dernière touche noire</b> est sa gate : tenue elle chante, relâchée elle s'arrête — depuis n'importe quel écran. <kbd>REC</kbd> n'a rien à voir avec elle, <kbd>SEL</kbd> tourne aussi la forme.</li>
 <li><b><span class="chip">SIREN 2</span></b> — comme la page <b>SR2</b> de sloop-DUB : <span class="kn">K1</span> la vitesse 1–16 Hz, <span class="kn">K2</span> la profondeur (l'amplitude du balayage de hauteur, deux octaves à 127), <span class="kn">K3</span> la symétrie du LFO, <span class="kn">K4</span> le niveau — ce que la dernière touche noire fait sonner.</li>
 <li><b><span class="chip">DELAY</span></b> — le tape echo : <span class="kn">K1</span> le temps 40–740 ms, <span class="kn">K2</span> le feedback, <span class="kn">K3</span> le niveau, <span class="kn">K4</span> le ton (l'amortissement des répétitions). Le temps glisse comme une bande qui satellite, les têtes ondulent (wow 0,7 Hz, flutter 6,3 Hz), les répétitions passent dans l'amortissement et une saturation douce qui chauffe passage après passage. <b>À partir de 90 % de course, K2 tient la queue pour toujours</b> — elle s'assombrit et se pose dans un chant grave qui ne meurt plus, le ruban infini des sound-systems ; <b>au-delà, le ruban part en larsen</b>, la saturation le tient, le souffle le ré-amorce même sans signal, et le chant va et vient tout seul — gardez une main sur <span class="kn">K2</span> et <span class="kn">K3</span>. La ligne FEEDBK passe à l'orange à 90 % et au rouge dans le larsen.</li>
+<li><b><span class="chip">SYNARE</span></b> — le syn-drum : la <b>dernière touche blanche</b> (F5) frappe, depuis n'importe quel écran — une pression est un coup, il résonne, une nouvelle pression refrappe, la queue est celle du delay. <span class="kn">K1</span> la hauteur 120–800 Hz, <span class="kn">K2</span> la durée 80–840 ms, <span class="kn">K3</span> la chute de hauteur (jusqu'à deux octaves en ~30 ms — le « doom »), <span class="kn">K4</span> le <i>send</i> vers le tape echo (0 = DRY).</li>
 <li><b><span class="chip">ISO</span></b> — quatre bandes <span class="kn">SUB 90 · BASS 420 · MIDS 2600 · TOPS</span> : <span class="kn">K1/K2/K3/K4</span> leurs gains −24…+12 dB, les <b>4 premières touches noires</b> (OP1–OP4) les tuent, leur LED s'allume tant que la bande est basse ; les quatre ensemble, c'est le <i>total kill</i>, et un kill réveille le module s'il dormait. <kbd>SEL</kbd> relève tous les kills.</li>
 </ul>
 </div>
@@ -498,6 +499,7 @@ const DUB_POT = {          // the DUB pages' continuous K1..K4: [min, span] in t
     2: [[0, 127], [0, 127], [0, 127], [0, 127]],     // SIREN 2: RATE DEPTH SYM LEVEL
     3: [[40, 700], [0, 127], [0, 127], [0, 127]],    // DELAY: TIME FEEDBK LEVEL TONE
     4: [[-24, 36], [-24, 36], [-24, 36], [-24, 36]], // ISO: SUB BASS MIDS TOPS
+    5: [[120, 680], [0, 127], [0, 127], [0, 127]],   // SYNARE: PITCH DECAY DROP SEND
 };
 const POT_SWEEP = 300, POT_START = -150;   // degrees: 0% at seven o'clock, 100% at five past
 let dubState = null;                       // the frame's DUB state, null before the first one
@@ -514,13 +516,14 @@ function deviceOffset(el, ev) {            // the pointer's offset from el's cen
     if (!det) return { x: sx, y: sy };
     return { x: (sx * m.d - sy * m.c) / det, y: (sy * m.a - sx * m.b) / det };
 }
-function parseDub(b) {                     // app.c web_dub's 26 bytes, little-endian, packed
-    const v = new DataView(b.buffer, b.byteOffset, 26);
+function parseDub(b) {                     // app.c web_dub's 31 bytes, little-endian, packed
+    const v = new DataView(b.buffer, b.byteOffset, 31);
     const i8 = (o) => (b[o] & 0x80 ? b[o] - 256 : b[o]);
     return { page: b[0], type: b[1], wave: b[2], freq: v.getUint16(3, true), send: b[5],
              rate: b[6], depth: b[7], sym: b[8], sirlvl: b[9], ms: v.getUint16(10, true),
              fb: b[12], lvl: b[13], tone: b[14], gain: [i8(15), i8(16), i8(17), i8(18)], mute: b[19],
-             filter: b[20], mix: b[21], usend: b[22], bsend: b[23], state: b[24], screen: b[25] };
+             filter: b[20], mix: b[21], usend: b[22], bsend: b[23], state: b[24], screen: b[25],
+             synfrq: v.getUint16(26, true), syndec: b[28], syndrop: b[29], synsend: b[30] };
 }
 function potTick() {                       // every frame: the pots sit at the firmware's values
     const page = dubState ? dubState.page : -1, live = !!dubState && dubState.screen === 4;
@@ -533,6 +536,7 @@ function potTick() {                       // every frame: the pots sit at the f
                     : page === 1 ? [null, null, dubState.freq, dubState.send][k]
                     : page === 2 ? [dubState.rate, dubState.depth, dubState.sym, dubState.sirlvl][k]
                     : page === 3 ? [dubState.ms, dubState.fb, dubState.lvl, dubState.tone][k]
+                    : page === 5 ? [dubState.synfrq, dubState.syndec, dubState.syndrop, dubState.synsend][k]
                     : [dubState.gain[0], dubState.gain[1], dubState.gain[2], dubState.gain[3]][k];
             const t = Math.max(0, Math.min(1, (v - min) / span));
             cap.classList.add('pot');

@@ -118,6 +118,43 @@ int main(void)
         for(i=0;i<DUB_TAPE_LEN;i+=16u){int32_t v=tape_store[i];if(v<0)v=-v;if(v>20000)still=1;}
         assert(still);                                /* the loop still sings, alone */
     }
+    /* the synare: silent until the last white key strikes, hot at the onset,
+     * gone within its decay, the pitch fallen by then; the send feeds the tape */
+    dub_init();
+    for(unsigned i=0;i<64;i++)assert(dub_synare_tick(&dub_synare)==0);
+    dub_synare_trigger(&dub_synare);
+    {
+        int32_t peak=0,tail=1,inc0;
+        unsigned i;
+        uint32_t t=0;
+        for(i=0;i<2000;i++){int32_t y=dub_synare_tick(&dub_synare);if(y<0)y=-y;if(y>peak)peak=y;}
+        assert(peak>8000000);                         /* the onset, near the siren's hot scale */
+        inc0=(int32_t)dub_synare.inc;                 /* the fall has moved the pitch by 30 ms */
+        for(;t<1323u;t++){(void)dub_synare_tick(&dub_synare);}
+        assert((int32_t)dub_synare.inc<inc0-inc0/8);  /* the drop glides down */
+        for(i=0;i<30000u;i++){(void)dub_synare_tick(&dub_synare);}
+        tail=0;
+        for(i=0;i<44100u;i++){if(dub_synare_tick(&dub_synare))tail++;}
+        assert(tail==0 && !dub_synare.env);          /* the 440 ms hit is over: silence, the voice sleeps */
+    }
+    {
+        /* the send: the strike reaches the tape through the master bus */
+        static int16_t tape_store[DUB_TAPE_LEN];
+        dub_init();
+        dub_tape_attach(tape_store);
+        dub_tape_set_lvl(127);dub_tape_set_fb(0);dub_tape_set_ms(400);dub_tape_set_siren_send(0);
+        dub_tape_set_send(0);dub_tape_set_bt_send(0);
+        dub_synare_set_send(&dub_synare,127);dub_tape_set_synare_send(127);
+        dub_synare_trigger(&dub_synare);
+        int32_t peak=0;
+        for(unsigned b=0;b<60;b++){                   /* 0.35 s: the hit, its throw, the echo */
+            int32_t bus[512];
+            memset(bus,0,sizeof bus);
+            dub_master_process(bus,256);
+            for(unsigned i=0;i<DUB_TAPE_LEN;i+=16u){int32_t v=tape_store[i];if(v<0)v=-v;if(v>peak)peak=v;}
+        }
+        assert(peak>3000);                            /* the tape holds the synare's throw */
+    }
     /* the siren: silent until triggered, hot when it sings */
     dub_siren_t s;dub_siren_init(&s);
     for(unsigned i=0;i<64;i++)assert(dub_siren_tick(&s)==0);
@@ -214,6 +251,6 @@ int main(void)
         }
     }
     assert(!hit);
-    puts("PASS: dub isolator kills and restores bands, FLAT filter untouched, lowpass shaped, the tape echo throws at its tape time and rings, the feedback's 90th share holds the tail forever and past it the larsen screams and stays bounded, the siren sleeps until triggered, sings hot and falls asleep when its gate opens, the chain at rest is bit-transparent, the USB in and the BT in throw into the tape separately at their own levels and their arms silence them");
+    puts("PASS: dub isolator kills and restores bands, FLAT filter untouched, lowpass shaped, the tape echo throws at its tape time and rings, the feedback's 90th share holds the tail forever and past it the larsen screams and stays bounded, the synare strikes hot and is gone within its decay and its send reaches the tape, the siren sleeps until triggered, sings hot and falls asleep when its gate opens, the chain at rest is bit-transparent, the USB in and the BT in throw into the tape separately at their own levels and their arms silence them");
     return 0;
 }

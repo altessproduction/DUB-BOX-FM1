@@ -110,12 +110,14 @@ typedef struct {
      * and every byte on flash is defined — the saved/clean memcmp sees no pad.
      * v19 appends the BT in throw's level and the two sends' arms (bit 0 the
      * USB in, bit 1 the BT in, both on at boot), two pad bytes keeping the
-     * record even. */
+     * record even. v20 appends the synare's five (the pitch's two, the decay,
+     * the drop, the send) and a pad byte keeping the record even. */
     uint8_t dub_on, dub_mix, dub_gain[4], dub_mutes, dub_filter;
     uint8_t dub_ms_lo, dub_ms_hi, dub_fb, dub_tone, dub_lvl, dub_send;
     uint8_t dub_frq_lo, dub_frq_hi, dub_rate, dub_type, dub_wave, dub_sym, dub_sir_send, dub_sir_lvl;
     uint8_t dub_depth, dub_pad;
     uint8_t dub_bt_send, dub_arms, dub_pad2[2];
+    uint8_t dub_syn_frq_lo, dub_syn_frq_hi, dub_syn_decay, dub_syn_drop, dub_syn_send, dub_syn_pad;
 } gateway_settings_t;
 static void gateway_dub_load_fields(const gateway_settings_t *s);
 static void gateway_dub_save_fields(gateway_settings_t *s);
@@ -137,6 +139,9 @@ static void gateway_dub_save_fields(gateway_settings_t *s)
     s->dub_bt_send = dub_send_bt;
     s->dub_arms = (uint8_t)((dub_send_usb_on ? 1u : 0u) | (dub_send_bt_on ? 2u : 0u));
     s->dub_pad2[0] = s->dub_pad2[1] = 0;
+    s->dub_syn_frq_lo = (uint8_t)(dub_synare.freq_hz & 255u); s->dub_syn_frq_hi = (uint8_t)(dub_synare.freq_hz >> 8);
+    s->dub_syn_decay = dub_synare.decay; s->dub_syn_drop = dub_synare.drop; s->dub_syn_send = dub_synare.send;
+    s->dub_syn_pad = 0;
 }
 static void gateway_dub_load_fields(const gateway_settings_t *s)
 {
@@ -167,6 +172,15 @@ static void gateway_dub_load_fields(const gateway_settings_t *s)
             dub_tape_set_bt_send(s->dub_bt_send);
             dub_send_usb_on = s->dub_arms & 1u;
             dub_send_bt_on = (s->dub_arms >> 1) & 1u;
+            if (s->version >= 20) {             /* v19 records end at dub_arms: the synare
+                                                 * keeps its fresh boot's voice (the save
+                                                 * clamped the fields, the load trusts them) */
+                dub_synare.freq_hz = (uint16_t)(s->dub_syn_frq_lo | (s->dub_syn_frq_hi << 8));
+                dub_synare.decay = s->dub_syn_decay;
+                dub_synare.drop = s->dub_syn_drop;
+                dub_synare.send = s->dub_syn_send;
+                dub_tape_set_synare_send(s->dub_syn_send);   /* the tape's copy follows */
+            }
         }
     }
     gateway_dub_sir_lvl = s->dub_sir_lvl > 127u ? 127u : s->dub_sir_lvl;
@@ -177,7 +191,7 @@ static uint32_t gateway_settings_ms, gateway_settings_retry_ms;
 
 static gateway_settings_t gateway_settings(void)
 {
-    gateway_settings_t s = {{'A', 'R', 'T'}, 19, (uint8_t)gateway_zoom, gateway_muted, gateway_mode, gateway_battery_mode | (!gateway_cpu_mode<<1) | (gateway_usb_out_mode<<2),
+    gateway_settings_t s = {{'A', 'R', 'T'}, 20, (uint8_t)gateway_zoom, gateway_muted, gateway_mode, gateway_battery_mode | (!gateway_cpu_mode<<1) | (gateway_usb_out_mode<<2),
         gateway_spectrum_rate, gateway_spectrum_max, gateway_spectrum_min, gateway_spectrum_color, gateway_bt_mode,
         {gateway_codec_preference,gateway_monitor,gateway_master_wave_auto_scale | gateway_wave_color<<1},
         {gateway_mix_db[0],gateway_mix_db[1],gateway_mix_db[2]},gateway_mix_mutes | gateway_mix_solos<<3,gateway_fade_time};
@@ -267,6 +281,7 @@ static void gateway_lights(void)
     if(dub_send_usb_on)keys|=1u<<GATEWAY_USB_SEND_KEY;else dim_keys|=1u<<GATEWAY_USB_SEND_KEY;
     if(dub_send_bt_on)keys|=1u<<GATEWAY_BT_SEND_KEY;else dim_keys|=1u<<GATEWAY_BT_SEND_KEY;
     if(gateway_dub_sir_held)keys|=1u<<GATEWAY_SIR_KEY;else dim_keys|=1u<<GATEWAY_SIR_KEY;
+    if(dub_synare.env)keys|=1u<<GATEWAY_SYN_KEY;else dim_keys|=1u<<GATEWAY_SYN_KEY;
     plat_lights((gateway_muted ? 1u << B_PLAY : LED_PLAY_GREEN) | active,
             keys, dim, dim_keys, 1);
     plat_lights_mid(0, 0);
@@ -430,8 +445,8 @@ void app_init(void)
             s.zoom < GATEWAY_ZOOMS && s.muted <= 1u && (s.version>=8?s.reserved<=(s.version>=11?27u:s.version>=9?3u:1u):!s.reserved) &&
             (s.version == 1 ? s.mode == 0 : s.mode < GATEWAY_MODES) &&
             (((s.version == 1 || s.version == 2) && size == 8u) ||
-             ((s.version == 3 ? size == 12u : (s.version >= 4 && s.version <= 19) &&
-               size == (s.version>=19?sizeof s:s.version>=18?48u:s.version>=17?46u:s.version>=15?24u:s.version>=12?22u:s.version>=10?20u:16u) &&
+             ((s.version == 3 ? size == 12u : (s.version >= 4 && s.version <= 20) &&
+               size == (s.version>=20?sizeof s:s.version>=19?52u:s.version>=18?48u:s.version>=17?46u:s.version>=15?24u:s.version>=12?22u:s.version>=10?20u:16u) &&
                s.bluetooth <= 1u && (s.version==4 ? !s.bt_reserved[0] && !s.bt_reserved[1] : (s.version>=16?(s.bt_reserved[0]>0 && s.bt_reserved[0]<=15):s.bt_reserved[0]<=2) && s.bt_reserved[1]<=(s.version>=12?3:2)) &&
                (s.version>=6 ? s.bt_reserved[2] < (s.version>=8?2u*GATEWAY_WAVE_COLORS:12u) : !s.bt_reserved[2])) && s.spectrum_rate < 3u &&
               (s.version>=13 ? s.spectrum_max<150u && s.spectrum_range>s.spectrum_max && s.spectrum_range<=150u : s.spectrum_max<=60u && s.spectrum_range<4u) && (s.version>=8?s.spectrum_reserved<GATEWAY_WAVE_COLORS:!s.spectrum_reserved)))) {
@@ -535,7 +550,9 @@ void app_input_only(void)
     }
     /* DUB-BOX: the last black key is the siren's gate, its only trigger — held
      * it sings at LEVEL, released it stops; what it threw into the tape rings
-     * on. REC has nothing to do with it: the key alone holds the note. */
+     * on. REC has nothing to do with it: the key alone holds the note. The last
+     * white key strikes the synare — a press is a hit, it rings out, a new
+     * press re-strikes; the tail is the tape's. */
     if (gateway_ui_ready) {
         if (key_pressed & (1u << GATEWAY_SIR_KEY)) {
             gateway_dub_sir_key = 1;
@@ -543,6 +560,14 @@ void app_input_only(void)
         } else if (!(keys & (1u << GATEWAY_SIR_KEY)) && gateway_dub_sir_key) {
             gateway_dub_sir_key = 0;
             gateway_dub_siren_hold(0);
+        }
+        if (key_pressed & (1u << GATEWAY_SYN_KEY)) {
+            dub_synare_trigger(&dub_synare);
+            gateway_dub_sir_released_ms = plat_ms();   /* the tail's room: one clock for
+                                                        * both voices' quiet moments */
+            dub_tape_hold_wanted();            /* the hit's tail keeps the tape's room */
+            gateway_lights();
+            dub_changed();
         }
     }
     if(gateway_fx_dialog){

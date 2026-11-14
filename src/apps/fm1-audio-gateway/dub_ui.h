@@ -13,25 +13,29 @@
 #define DUB_UI_ROW_Y0 44
 #define DUB_UI_ROW_DY 42
 static uint8_t gateway_dub_page;
-enum { DUB_PG_MAIN = 0, DUB_PG_SIREN, DUB_PG_SIREN2, DUB_PG_DELAY, DUB_PG_ISO, DUB_PG_N };
-static const char *const gateway_dub_page_names[DUB_PG_N] = {"DUB", "SIREN", "SIREN 2", "DELAY", "ISOLATOR"};
+enum { DUB_PG_MAIN = 0, DUB_PG_SIREN, DUB_PG_SIREN2, DUB_PG_DELAY, DUB_PG_ISO, DUB_PG_SYN, DUB_PG_N };
+static const char *const gateway_dub_page_names[DUB_PG_N] = {"DUB", "SIREN", "SIREN 2", "DELAY", "ISOLATOR", "SYNARE"};
 static uint8_t gateway_dub_sir_lvl = 88;           /* the SIREN page's LEVEL, what the key sounds at */
 static uint8_t gateway_dub_sir_held;               /* the siren's gate: down while the last black key is held */
 static uint8_t gateway_dub_sir_key;                /* the key's hold — the gate's only source */
-static uint32_t gateway_dub_sir_released_ms;       /* when the gate opened: the tape's tail keeps its room past it */
+static uint32_t gateway_dub_sir_released_ms;       /* when the siren's gate opened or the synare
+                                                    * last struck: the tape's tail keeps its room
+                                                    * a few seconds past it */
 /* the keyboard's dub keys, every screen: the four first black keys (F#3 G#3 A#3
  * C#4, the OP1..OP4 prints) kill the ISO bands — SUB BASS MIDS TOPS, their LED
  * lit while killed — the eighth black key (A#4, the GLO print) is the module's
  * on/off, its LED lit while DUB is on (and DUB is on at boot), the ninth and
- * tenth (C#5, the MONO print, and D#5, no print) arm the USB in and the BT in
- * throws into the tape, lit while armed (armed at boot, the levels at 0), and
+ * the tenth (C#5, the MONO print, and D#5, no print) arm the USB in and the BT
+ * in throws into the tape, lit while armed (armed at boot, the levels at 0),
  * the last black key (F#5, no print) is the siren's gate: held it sings,
- * released it stops, the tape's tail rings on. A kill wakes the module (DUB ON)
- * if it was off: a mute that silently did nothing would read as broken. */
+ * released it stops, the tape's tail rings on — and the last white key (F5)
+ * strikes the synare, its LED lit while the hit sounds. A kill wakes the module
+ * (DUB ON) if it was off: a mute that silently did nothing would read as broken. */
 static const uint8_t gateway_dub_kill_keys[DUB_BANDS] = {1, 3, 5, 8};
 #define GATEWAY_DUB_KEY 17u                 /* the 8th black key (A#4): the module's on/off */
 #define GATEWAY_USB_SEND_KEY 20u            /* the 9th (C#5): the USB in send's arm */
 #define GATEWAY_BT_SEND_KEY 22u             /* the 10th (D#5): the BT in send's arm */
+#define GATEWAY_SYN_KEY 24u                 /* the last white key (F5): the synare's strike */
 #define GATEWAY_SIR_KEY 25u
 
 static void dub_tape_hold_wanted(void);
@@ -60,6 +64,7 @@ static uint8_t dub_tape_wanted(void)
     return dub_on && (dub_tape_fb >= DUB_TAPE_FB_INF ||
                       (dub_send_usb_on && dub_tape_send) || (dub_send_bt_on && dub_send_bt) ||
                       gateway_dub_sir_held || dub_siren.active || dub_siren.level_cur ||
+                      dub_synare.env ||
                       (gateway_dub_sir_released_ms &&
                        plat_ms() - gateway_dub_sir_released_ms < 5000u + dub_tape_ms));
 }
@@ -232,11 +237,8 @@ static void gateway_dub_draw(void)
                        dub_tape_lvl, 127u);
             dub_ui_num(text, dub_tape_tone);
             dub_ui_row(3, "K4 TONE", text, RGB(75, 155, 255), dub_tape_tone, 127u);
-            cv_text(6, 218, &FONT_XS,
-                    dub_tape_fb > DUB_TAPE_FB_INF ? "LARSEN  MIND THE LEVEL" :
-                    dub_tape_fb >= DUB_TAPE_FB_INF ? "THE TAIL NEVER DIES" : "HOME BACK",
-                    dub_tape_fb >= DUB_TAPE_FB_INF ? RGB(255, 140, 25) : C_GRAY);
-        } else {
+            cv_text(6, 218, &FONT_XS, "HOME BACK", C_GRAY);
+        } else if (page == DUB_PG_ISO) {
             static const char *const band_names[DUB_BANDS] = {"K1 SUB", "K2 BASS", "K3 MIDS", "K4 TOPS"};
             for (unsigned b = 0; b < DUB_BANDS; b++) {
                 const dub_band_param_t *p = &dub_isolator.p[b];
@@ -249,6 +251,19 @@ static void gateway_dub_draw(void)
                 }
             }
             cv_text(6, 218, &FONT_XS, "BLACK KEYS KILL   SEL LIFTS", C_GRAY);
+        } else if (page == DUB_PG_SYN) {
+            /* the synare's own page: the hit's pitch, its length, the pitch
+             * fall, and its throw into the tape echo */
+            dub_ui_val(text, dub_synare.freq_hz, " HZ");
+            dub_ui_row(0, "K1 PITCH", text, RGB(255, 140, 25), dub_synare.freq_hz - 120u, 680u);
+            dub_ui_num(text, dub_synare.decay);
+            dub_ui_row(1, "K2 DECAY", text, RGB(255, 140, 25), dub_synare.decay, 127u);
+            dub_ui_num(text, dub_synare.drop);
+            dub_ui_row(2, "K3 DROP", text, RGB(255, 140, 25), dub_synare.drop, 127u);
+            dub_ui_num(text, dub_synare.send);
+            dub_ui_row(3, "K4 SEND", text, dub_synare.send ? RGB(75, 210, 150) : C_GRAY,
+                       dub_synare.send, 127u);
+            cv_text(6, 218, &FONT_XS, "HOME BACK", C_GRAY);
         }
         cv_oy = 0; cv_blit(0, band);
     }
@@ -344,6 +359,23 @@ static void gateway_dub_turn(unsigned enc, int delta)
         }
         else if (enc == EN_K4) {
             dub_tape_set_tone((uint8_t)dub_clamp((int)dub_tape_tone + dub_pot_s(delta, 127), 0, 127));
+            dub_changed();
+        }
+    } else if (page == DUB_PG_SYN) {
+        /* the synare's four, pots (2.9.8's feel): the hit's pitch, its length,
+         * the pitch's fall, and its throw into the tape (the tape keeps its
+         * own copy of the level, as the siren's) */
+        if (enc == EN_K1) {
+            dub_synare_set_freq(&dub_synare, (uint16_t)dub_clamp((int)dub_synare.freq_hz + dub_pot_s(delta, 680), 120, 800));
+            dub_changed();
+        } else if (enc == EN_K2 || enc == EN_K3) {
+            uint8_t *p = enc == EN_K2 ? &dub_synare.decay : &dub_synare.drop;
+            *p = (uint8_t)dub_clamp((int)*p + dub_pot_s(delta, 127), 0, 127);
+            dub_changed();
+        } else if (enc == EN_K4) {
+            int v = dub_clamp((int)dub_synare.send + dub_pot_s(delta, 127), 0, 127);
+            dub_synare_set_send(&dub_synare, (uint8_t)v);
+            dub_tape_set_synare_send((uint8_t)v);  /* the tape keeps its own copy */
             dub_changed();
         }
     } else {
