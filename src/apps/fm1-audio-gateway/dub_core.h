@@ -298,6 +298,21 @@ static void dub_filter_process(int32_t *lr, uint32_t n)
 #define DUB_FLT_INC 19617261u   /* 6.3 Hz */
 #define DUB_WOW_DEP (20 << 8)   /* +- 0.45 ms, Q8 samples */
 #define DUB_FLT_DEP (4 << 8)    /* +- 0.09 ms */
+/* The feedback's top of course: at the 90th share of the knob (fb 114 of 127)
+ * the loop sits a hair past unity — what you played darkens pass by pass (the
+ * damping, the soft clip) and settles into a low sing that never dies, the
+ * sound-system's infinite tape; past the share the excess grows and the loop
+ * builds into the larsen, its gain a slow random walk (the scream breathes and
+ * sometimes dips back) and a hiss a few LSBs wide seeds it out of silence. The
+ * soft clip holds whatever it becomes. Below the share the knob keeps its own
+ * decay. */
+#define DUB_TAPE_FB_INF 114u    /* the course's 90 %: the loop holds */
+#define DUB_TAPE_HOLD 340       /* the 90 %'s excess: the tail's own residue
+                                 * sustains it (the clip's fixed point), a dark
+                                 * low sing, never a scream */
+#define DUB_TAPE_RUNAWAY 3400   /* the 100 %'s excess over unity, Q15 (+10 %) */
+#define DUB_TAPE_DRIFT 1200     /* the larsen's gain wander, +- Q15 */
+#define DUB_TAPE_HISS 32        /* the seed's LSBs, about -60 dB */
 /* The tape's buffer is NOT static: 64 KiB of .bss would eat the work area the
  * waveform/spectrum captures need (98,304 B). Foreground code holds it in the
  * work area while the echo is in use and lets the displays take it back
@@ -313,6 +328,9 @@ static int32_t dub_tape_w0, dub_tape_dw;
 static int32_t dub_tape_send_g, dub_tape_sir_g;     /* the throws' gains, Q15, slewed */
 static int32_t dub_tape_col = 2000 + 50 * 240;      /* the repeats' damping, slewless */
 static int32_t dub_tape_lp;                         /* the feedback's one-pole */
+static int32_t dub_tape_gain = 70 * 230;            /* the loop's gain, Q15 (the boot knob's) */
+static int32_t dub_tape_drift;                      /* the larsen's gain wander, Q15 */
+static uint32_t dub_tape_rnd = 0x1234567u;          /* the larsen's wander and seed */
 static uint8_t dub_siren_send = 48;                 /* the siren's own throw, 0 DRY — the tape
                                                      * reads its own copy (dub_tape_set_siren_send);
                                                      * the SIREN page's K4 SEND rules both */
@@ -331,6 +349,16 @@ static int32_t dub_send_bt_g;                       /* the BT throw's gain, Q15,
 static int16_t dub_throw_usb[APP_BLOCK], dub_throw_bt[APP_BLOCK];
 static volatile uint8_t dub_sends_live;             /* the render left a fresh USB throw */
 
+/* the loop's gain for a knob value: the knob's own decay below the 90th share,
+ * the hold's hair of excess there, the runaway's base past it */
+static int32_t dub_tape_gain_of(uint32_t fb)
+{
+    if (fb < DUB_TAPE_FB_INF)
+        return (int32_t)fb * 230;
+    return 32768 + DUB_TAPE_HOLD +
+           (int32_t)((uint32_t)(fb - DUB_TAPE_FB_INF) * (DUB_TAPE_RUNAWAY - DUB_TAPE_HOLD) /
+                     (127u - DUB_TAPE_FB_INF));
+}
 static void dub_tape_init(void)
 {
     dub_tape_buf = 0;
@@ -340,6 +368,8 @@ static void dub_tape_init(void)
     dub_tape_w0 = dub_tape_dw = 0;
     dub_tape_send_g = dub_tape_sir_g = 0;
     dub_tape_lp = 0;
+    dub_tape_drift = 0;
+    dub_tape_gain = dub_tape_gain_of(dub_tape_fb);
 }
 static uint32_t dub_tape_bytes(void) { return DUB_TAPE_LEN * 2u; }
 /* foreground only: attach/detach the tape's storage; the audio side picks the
@@ -352,6 +382,8 @@ static void dub_tape_attach(int16_t *buf)
         dub_tape_w = 0;
         dub_tape_cur = 0;
         dub_tape_lp = 0;
+        dub_tape_drift = 0;
+        dub_tape_gain = dub_tape_gain_of(dub_tape_fb);
     }
 }
 static void dub_tape_set_ms(uint16_t ms)
@@ -438,6 +470,25 @@ static void dub_tape_block(uint32_t n)
             st = t > dub_tape_sir_g ? 1 : -1;
         dub_tape_sir_g += st;
     }
+    {   /* the loop's gain, slewed block to block like the throws': the knob's
+         * own decay below the 90th share, exactly unity there, and past it the
+         * runaway's base plus a slow random walk (the larsen breathes, at the
+         * low excesses it may dip under unity and die back before it builds
+         * again); the soft clip holds whatever it becomes */
+        uint32_t fb = dub_tape_fb;
+        int32_t t, st;
+        if (fb <= DUB_TAPE_FB_INF)
+            t = dub_tape_gain_of(fb);
+        else {
+            dub_tape_rnd = dub_tape_rnd * 1664525u + 1013904223u;
+            t = dub_tape_gain_of(fb) +
+                ((int32_t)(dub_tape_rnd >> 16) - 32768) * DUB_TAPE_DRIFT / 32768;
+        }
+        st = (t - dub_tape_gain) >> 3;
+        if (!st && t != dub_tape_gain)
+            st = t > dub_tape_gain ? 1 : -1;
+        dub_tape_gain += st;
+    }
 }
 /* one sample in (Q23, the throw already summed), the wet out (Q23, leveled) */
 static int32_t dub_tape_step(int32_t in)
@@ -458,13 +509,19 @@ static int32_t dub_tape_step(int32_t in)
     fbp = dub_tape_lp;                               /* the tape's soft clip (x - x^3 / 4, Q15):
                                                       * the repeats warm up pass by pass */
     fbp -= dub_mul15(dub_mul15(fbp, fbp), fbp) >> 2;
-    wr = (in >> 9) + dub_mul15(fbp, dub_tape_fb * 230);
+    wr = (in >> 9) + dub_mul15(fbp, dub_tape_gain);
     /* The arithmetic >> floors negatives, so the feedback alone would recirculate
      * a +-1 LSB truncation whisper forever (mul15(-1, x) = -1). A real tape's
      * noise floor sits far above -138 dB: let the empty tail die to exact
      * silence, so the chain at rest (no throw connected) is bit-transparent. */
     if (wr > -2 && wr < 2)
         wr = 0;
+    if (dub_tape_fb > DUB_TAPE_FB_INF) {             /* the runaway's hiss: a real tape's
+                                                      * noise floor seeds the larsen out
+                                                      * of silence */
+        dub_tape_rnd = dub_tape_rnd * 1664525u + 1013904223u;
+        wr += (int32_t)(dub_tape_rnd >> 26) - DUB_TAPE_HISS;
+    }
     if (wr > 32767)
         wr = 32767;
     if (wr < -32768)

@@ -1,3 +1,39 @@
+# DUB-BOX 1.0.9
+
+The tape echo's top of course — the sound-system's infinite tape:
+
+- **The DLY page's K2 FEEDBK holds the tail forever from the 90th share of its
+  course** (114 of 127): what was played darkens pass by pass (the damping,
+  the soft clip) and settles into a low sing that never dies. The loop sits a
+  hair past unity there — the clip's own fixed point keeps the residue a dark
+  bass hum (the host suite watches the tail still singing 30 s after one
+  burst, its level held). Below the share the knob keeps its own decay — the
+  boot's 70 and every value under 114 are bit-exact what they were.
+- **Past the share the loop builds into the larsen.** The excess over unity
+  grows to +10 % at the 100 %, and the loop's gain walks a slow random path
+  block to block: the scream breathes, and at the low excesses it dips back
+  under unity and dies away before it builds again. A hiss a few LSBs wide
+  (about −60 dB) seeds the loop out of silence — park the knob at 100, walk
+  away, come back to the tape screaming. The soft clip holds whatever it
+  becomes: the scream settles near −4 dBFS at the 100 %, never a number that
+  leaves Q15.
+- **The DLY page says where the knob is**: the FEEDBK row turns orange at the
+  90th share and red in the larsen, and the bottom hint reads THE TAIL NEVER
+  DIES / LARSEN MIND THE LEVEL instead of HOME BACK.
+- **The tape's room stays held while the knob sits at the share or above** —
+  the loop sustains itself, the buffer cannot go back to the displays; the
+  waveform and spectrum captures wait until the knob comes back below 90, and
+  the displays say so. Below the share the old economy rules (the room frees
+  five seconds past the last source, as 1.0.7 built it).
+- The emulator rebuilt with the same firmware (emcc 7.0.0, 179 119 B wasm);
+  its manual documents the zone. The host suite covers the hold (one burst,
+  still singing 30 s on, and not built past twice its size), the runaway
+  (bounded at the clip's hold, the loop singing alone) and the 70's tail dead
+  by 20 s.
+
+Package identity `FM-1_2345`, `dub-box-1.0.9.fwsc` (613 178 B,
+sha256 bac4097f…493fb5).
+
 # DUB-BOX 1.0.8
 
 The newer FM-1 units work — their settings persist and their updates install:

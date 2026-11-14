@@ -52,9 +52,13 @@ static uint8_t dub_tape_wanted(void)
     /* The tape's room is held only while the echo can receive signal or has
      * just rung: a source send connected (an armed key with its level up), or
      * the siren singing — its tail keeps the room a few seconds past the gate.
-     * At rest — the boot's sends at 0, the siren asleep — the work area stays
-     * whole for the waveform and spectrum captures. */
-    return dub_on && ((dub_send_usb_on && dub_tape_send) || (dub_send_bt_on && dub_send_bt) ||
+     * At the feedback's top of course the loop sustains itself (the tail never
+     * dies), so the room stays for as long as the knob sits there — the
+     * waveform and spectrum captures then wait, the displays say so. At rest
+     * below the share — the boot's sends at 0, the siren asleep — the work
+     * area stays whole for the captures. */
+    return dub_on && (dub_tape_fb >= DUB_TAPE_FB_INF ||
+                      (dub_send_usb_on && dub_tape_send) || (dub_send_bt_on && dub_send_bt) ||
                       gateway_dub_sir_held || dub_siren.active || dub_siren.level_cur ||
                       (gateway_dub_sir_released_ms &&
                        plat_ms() - gateway_dub_sir_released_ms < 5000u + dub_tape_ms));
@@ -219,13 +223,19 @@ static void gateway_dub_draw(void)
             dub_ui_val(text, dub_tape_ms, " MS");
             dub_ui_row(0, "K1 TIME", text, RGB(75, 155, 255), dub_tape_ms - 40u, DUB_TAPE_MS_MAX - 40u);
             dub_ui_num(text, dub_tape_fb);
-            dub_ui_row(1, "K2 FEEDBK", text, C_WHITE, dub_tape_fb, 127u);
+            dub_ui_row(1, "K2 FEEDBK", text,
+                       dub_tape_fb > DUB_TAPE_FB_INF ? RGB(255, 90, 60) :
+                       dub_tape_fb >= DUB_TAPE_FB_INF ? RGB(255, 140, 25) : C_WHITE,
+                       dub_tape_fb, 127u);
             dub_ui_num(text, dub_tape_lvl);
             dub_ui_row(2, "K3 LEVEL", text, dub_tape_lvl ? RGB(75, 155, 255) : RGB(255, 90, 60),
                        dub_tape_lvl, 127u);
             dub_ui_num(text, dub_tape_tone);
             dub_ui_row(3, "K4 TONE", text, RGB(75, 155, 255), dub_tape_tone, 127u);
-            cv_text(6, 218, &FONT_XS, "HOME BACK", C_GRAY);
+            cv_text(6, 218, &FONT_XS,
+                    dub_tape_fb > DUB_TAPE_FB_INF ? "LARSEN  MIND THE LEVEL" :
+                    dub_tape_fb >= DUB_TAPE_FB_INF ? "THE TAIL NEVER DIES" : "HOME BACK",
+                    dub_tape_fb >= DUB_TAPE_FB_INF ? RGB(255, 140, 25) : C_GRAY);
         } else {
             static const char *const band_names[DUB_BANDS] = {"K1 SUB", "K2 BASS", "K3 MIDS", "K4 TOPS"};
             for (unsigned b = 0; b < DUB_BANDS; b++) {

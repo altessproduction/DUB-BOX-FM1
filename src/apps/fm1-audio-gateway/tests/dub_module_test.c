@@ -60,6 +60,64 @@ int main(void)
         }
     }
     assert(!early && loud);
+    /* the feedback's top of course: at the 90th share the loop holds unity —
+     * one burst in, the tail still sings half a minute later; below the share
+     * (the boot's 70) the same burst is long gone by then */
+    dub_init();
+    dub_tape_attach(tape_store);
+    dub_tape_set_send(127);dub_tape_set_lvl(127);dub_tape_set_fb(DUB_TAPE_FB_INF);dub_tape_set_ms(400);
+    {
+        unsigned t=0,b,i,peak3=0,peak30=0;
+        for(b=0;b<3160;b++){                          /* 31.6 s of blocks */
+            dub_tape_block(256);
+            for(i=0;i<256;i++,t++){
+                int32_t in=(t>=2560u&&t<2624u)?6000000:0;
+                (void)dub_tape_step(in);
+            }
+            if(t>=44100u*3u&&!peak3)                  /* the tail's size at 3 s */
+                for(i=0;i<DUB_TAPE_LEN;i+=16u){int32_t v=tape_store[i];if(v<0)v=-v;if(v>peak3)peak3=v;}
+        }
+        for(i=0;i<DUB_TAPE_LEN;i+=16u){int32_t v=tape_store[i];if(v<0)v=-v;if(v>peak30)peak30=v;}
+        assert(peak3>400 && peak30>peak3/2 && peak30<=peak3*2);   /* held, not built */
+    }
+    dub_init();
+    dub_tape_attach(tape_store);
+    dub_tape_set_send(127);dub_tape_set_lvl(127);dub_tape_set_fb(70);dub_tape_set_ms(400);
+    {
+        unsigned t=0,b,i,late=0;
+        for(b=0;b<3160;b++){
+            dub_tape_block(256);
+            for(i=0;i<256;i++,t++){
+                int32_t in=(t>=2560u&&t<2624u)?6000000:0;
+                int32_t wet=dub_tape_step(in);
+                if(wet<-2||wet>2)late=(t>44100u*20u)?late+1:late;
+            }
+        }
+        assert(late<44100u);                          /* the 70's tail is dead by 20 s */
+    }
+    /* past the 90th share the loop builds into the larsen: from one small
+     * burst (or the hiss alone) it grows to the scream and the soft clip
+     * keeps it there — a scream, never a number that leaves Q15 */
+    dub_init();
+    dub_tape_attach(tape_store);
+    dub_tape_set_send(127);dub_tape_set_lvl(127);dub_tape_set_fb(127);dub_tape_set_ms(400);
+    {
+        unsigned t=0,b,i,big=0,still=0;
+        int32_t worst=0;
+        for(b=0;b<3160;b++){
+            dub_tape_block(256);
+            for(i=0;i<256;i++,t++){
+                int32_t in=(t>=2560u&&t<2624u)?6000000:0;
+                int32_t wet=dub_tape_step(in);
+                if(wet<0)wet=-wet;
+                if(wet>worst)worst=wet;
+                if(wet>6000000)big=1;                 /* the scream arrived */
+            }
+        }
+        assert(big && worst<=16800000);               /* bounded at the clip's hold */
+        for(i=0;i<DUB_TAPE_LEN;i+=16u){int32_t v=tape_store[i];if(v<0)v=-v;if(v>20000)still=1;}
+        assert(still);                                /* the loop still sings, alone */
+    }
     /* the siren: silent until triggered, hot when it sings */
     dub_siren_t s;dub_siren_init(&s);
     for(unsigned i=0;i<64;i++)assert(dub_siren_tick(&s)==0);
@@ -156,6 +214,6 @@ int main(void)
         }
     }
     assert(!hit);
-    puts("PASS: dub isolator kills and restores bands, FLAT filter untouched, lowpass shaped, the tape echo throws at its tape time and rings, the siren sleeps until triggered, sings hot and falls asleep when its gate opens, the chain at rest is bit-transparent, the USB in and the BT in throw into the tape separately at their own levels and their arms silence them");
+    puts("PASS: dub isolator kills and restores bands, FLAT filter untouched, lowpass shaped, the tape echo throws at its tape time and rings, the feedback's 90th share holds the tail forever and past it the larsen screams and stays bounded, the siren sleeps until triggered, sings hot and falls asleep when its gate opens, the chain at rest is bit-transparent, the USB in and the BT in throw into the tape separately at their own levels and their arms silence them");
     return 0;
 }

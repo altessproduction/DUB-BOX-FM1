@@ -61,6 +61,16 @@ into the tape echo and K4 the BT in's. The two sends are read separately, each
 at its own level; a send at 0 is DRY. The module's on/off is not on this page —
 the eighth black key holds it.
 
+The DELAY page's K2 FEEDBK holds the tail forever from the 90th share of its
+course (114 of 127): what was played darkens pass by pass and settles into a
+low sing that never dies — the sound-system's infinite tape. Past the share
+the loop builds into the larsen: the scream breathes and wanders on its own,
+the soft clip holds it, and a faint hiss seeds it out of silence — keep a hand
+on K2 and on K3 LEVEL. The FEEDBK row turns orange at the share and red in the
+larsen, and the hint says so. While the knob sits at the share or above, the
+tape's room stays held (the loop sustains itself): the waveform and spectrum
+captures wait until the knob comes back below.
+
 On DUB, SIREN, SIREN 2, DELAY and ISO the continuous K1–K4 are potentiometers,
 as sloop-DUB set them (2.9.8): a detent sweeps its share of the range, the
 whole course runs in some 300 degrees (20 detents; an FM-1 turn is 24), one
