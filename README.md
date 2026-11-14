@@ -101,3 +101,5 @@ are GPL-3.0-only, ported from sloop-DUB. The combined firmware is distributed
 GPL-3.0-only — see [LICENSING.md](LICENSING.md), [CREDITS.md](CREDITS.md) and
 [UPSTREAM.md](docs/UPSTREAM.md). M-VAVE and FM-1 are trademarks of their
 respective owners; DUB-BOX is not affiliated with them.
+
+You can also try DUB-BOX in the browser, no flashing needed, in the free community [FM-1 Emulator](https://fm1-emulator.atst.tools/).
